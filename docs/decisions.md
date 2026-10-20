@@ -38,3 +38,6 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 ## 迁到 Windows（v3.1，2026-10-21）
 - 运行机改为 Windows 算力机 desktop-ahpct75，项目根 D:\warm；仓库由 MacBook ~/Warm `git bundle --all` 迁来（trial-1/2/3 历史保留，无 remote），MacBook 那份留作备份不再改。
 - Tripo key 复制到 %USERPROFILE%\.tripo_key（只校验前缀 tsk_ + 长度 47，未打印）。
+- 规格 v3.1：路径改 $BLENDER/$PY/$GIT/$UNITY/$EDGE（见 CLAUDE.md 开头）；python 一律用 Blender 自带的 3.11（系统 python 是商店占位）；日志/临时放 D:\tmp；限时改 Start-Process + WaitForExit。
+- web_check.sh → web_check.py（Windows 无 bash，$PY 标准库实现），网页冒烟改 headless Edge。桌面包加本机启动验收：-logFile D:\tmp\Player.log 跑 30 s，SCENE-READY 恰 1 次。
+- 不装 Windows IL2CPP（要 VS C++，C: 放不下），桌面仍 Mono。
