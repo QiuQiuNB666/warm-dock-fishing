@@ -1,10 +1,12 @@
-#!/usr/bin/python3
-"""Phase 1: Tripo text_to_model (+ animate_rig -> animate_retarget for character) -> assets_raw/<name>.glb.
+#!/usr/bin/env python3
+"""Phase 1: Tripo API v3 text-to-model (+ animate_rig -> animate_retarget for character) -> assets_raw/<name>.glb.
 Usage: tripo_gen.py [names...] [--dry-run]   (names default: rock boat cabin character)
 Exit: 0 ok / 1 item failed after 3 tries / 2 BLOCKED (401/402/429, 2x 5xx/timeout in a row)."""
 import json, os, subprocess, sys, time, urllib.error, urllib.request
 
-API = "https://api.tripo3d.ai/v2/openapi/task"
+API = "https://openapi.tripo3d.com/v3"  # v2 sunsets 2026-11-01; v3 = one endpoint per task type, no "type" field
+PATHS = {"text_to_model": "/generation/text-to-model", "animate_rig": "/animations/rig",
+         "animate_retarget": "/animations/retarget"}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUFFIX = "stylized low-poly game asset, warm storybook palette, soft turquoise sea, clean topology, no text, no watermark"
 MODEL_VERSION = "v2.5-20250123"  # API default; rig needs >= v2.0-20240919
@@ -23,14 +25,14 @@ class Blocked(Exception):
 
 
 def bodies(name):
-    """Request chain for one item; '$prev' is replaced by the previous task_id."""
+    """Request chain for one item; '$prev' is replaced by the previous task_id. "type" only picks the v3 path."""
     desc, faces = ITEMS[name]
     chain = [{"type": "text_to_model", "model_version": MODEL_VERSION, "prompt": f"{desc}, {SUFFIX}",
               "face_limit": faces, "texture": True, "pbr": True}]
     if name == "character":
-        chain += [{"type": "animate_rig", "original_model_task_id": "$prev", "out_format": "glb",
+        chain += [{"type": "animate_rig", "input": "$prev", "out_format": "glb",
                    "rig_type": "biped", "spec": "tripo"},
-                  {"type": "animate_retarget", "original_model_task_id": "$prev", "out_format": "glb",
+                  {"type": "animate_retarget", "input": "$prev", "out_format": "glb",
                    "animations": ANIMS, "animate_in_place": True, "bake_animation": True}]
     return chain
 
@@ -72,15 +74,16 @@ def call(method, url, key, body=None, raw=False):
 
 
 def run_task(key, body):
-    tid = call("POST", API, key, body)["task_id"]
+    path, body = PATHS[body["type"]], {k: v for k, v in body.items() if k != "type"}
+    tid = call("POST", API + path, key, body)["task_id"]
     while True:
         time.sleep(5)
-        d = call("GET", f"{API}/{tid}", key)
+        d = call("GET", f"{API}/tasks/{tid}", key)
         st = d.get("status")
         if st == "success":
             return tid, d.get("output", {})
         if st not in ("queued", "running"):
-            raise RuntimeError(f"task {tid} {body['type']} status={st}")
+            raise RuntimeError(f"task {tid} {path} status={st}")
 
 
 def gen(key, name):
@@ -89,7 +92,8 @@ def gen(key, name):
     for body in bodies(name):
         body = {k: (prev if v == "$prev" else v) for k, v in body.items()}
         if DRY:
-            print(json.dumps({"POST": API, "body": body}, ensure_ascii=False))
+            print(json.dumps({"POST": API + PATHS[body["type"]], "body": {k: v for k, v in body.items() if k != "type"}},
+                             ensure_ascii=False))
             prev = f"<{body['type']}-task-id>"
             continue
         prev, output = run_task(key, body)
@@ -104,8 +108,9 @@ def gen(key, name):
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "wb") as f:
         f.write(data)
-    subprocess.run(["git", "-C", ROOT, "add", out], check=True)
-    subprocess.run(["git", "-C", ROOT, "commit", "-qm", f"phase-1 {name}"], check=True)
+    git = os.environ.get("GIT", "git")
+    subprocess.run([git, "-C", ROOT, "add", out], check=True)
+    subprocess.run([git, "-C", ROOT, "commit", "-qm", f"phase-1 {name}"], check=True)
     print(f"{name}: {len(data)} bytes")
 
 

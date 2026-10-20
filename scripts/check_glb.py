@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """Phase 1 test: check_glb.py [dir=assets_raw]. Every glb has glTF header + parsable JSON chunk;
 rock/boat/cabin present; character = character.glb or character_*.glb with >=2 animations in total; total <50MB."""
 import glob, json, os, struct, sys
