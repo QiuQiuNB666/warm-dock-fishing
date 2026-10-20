@@ -34,3 +34,7 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - 拆分版 glb 的动作名是通用的「Animation」，按文件名 character_<tag>.glb 打标签再改名 AN_<tag>。
 - 循环闭合：clean.py 把每条 fcurve 末帧值对齐首帧（Tripo 循环若有跳帧，再换交叉淡化）。
 - 两种输入（合并/拆分）各一次：CLEAN PASS。占位文件未进 assets_raw、未入库，/tmp/warm_ph 已删。
+
+## 迁到 Windows（v3.1，2026-10-21）
+- 运行机改为 Windows 算力机 desktop-ahpct75，项目根 D:\warm；仓库由 MacBook ~/Warm `git bundle --all` 迁来（trial-1/2/3 历史保留，无 remote），MacBook 那份留作备份不再改。
+- Tripo key 复制到 %USERPROFILE%\.tripo_key（只校验前缀 tsk_ + 长度 47，未打印）。
