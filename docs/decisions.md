@@ -43,3 +43,6 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - 不装 Windows IL2CPP（要 VS C++，C: 放不下），桌面仍 Mono。
 - Tripo 迁 API v3（官方 migration-v2-to-v3 只读一次）：base https://openapi.tripo3d.com/v3；text_to_model→/generation/text-to-model，animate_rig→/animations/rig，animate_retarget→/animations/retarget，请求体去掉 type，original_model_task_id→input；轮询 GET /tasks/{id}。指南未提响应外层与 output 字段变化，沿用 code/data、output.pbr_model|model；首次真实请求若不符，只查一次文档改。
 - Windows 试跑（Blender 4.5.9 便携 + 自带 Python 3.11）：tripo_gen --dry-run 退出 0；占位 glb（合并/拆分）CHECK-GLB PASS ×2；clean.py 两种输入 CLEAN PASS ×2。占位与输出在 D:\tmp，未入库。clean.py/check_glb.py 无需改动。
+- 工具链（D:）：Blender 4.5.9 便携 D:\tools\blender-4.5.9；MinGit 2.56.0.2 D:\tools\mingit；Unity Hub D:\Unity\Hub（UnityHubSetup-x64.exe /S，无 UAC；旧地址 UnityHubSetup.exe 已 404）；Unity 6000.3.26f1 + WebGLSupport 于 D:\Unity\Editors\6000.3.26f1（windowsstandalonesupport 自带），已 `editors --add` 登记进 Hub。
+- 坑：Hub 无头 install 把安装包下到 %APPDATA%\UnityHub\downloads（C:），4 GB+0.9 GB 撑爆 C: 致 INSTALL_ERROR。做法：安装包挪 D:\tools\dl、TEMP 指 D:\tmp\utemp，手动 `UnitySetup64-*.exe /S /D=<编辑器根>`、模块同 /D。以后加模块照此办理。
+- 无头启动：退出码 198，`No valid Unity Editor license found`——待用户在 Windows 桌面登录 Hub 激活个人版许可证。
