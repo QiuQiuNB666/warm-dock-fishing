@@ -1,0 +1,61 @@
+using UnityEngine;
+
+[RequireComponent(typeof(CharacterController))]
+public class PlayerController : MonoBehaviour
+{
+    public Animator animator;
+    public FishingStateMachine fishing;
+    public float Speed01 { get; private set; }
+
+    static readonly int SpeedId = Animator.StringToHash("Speed");
+    CharacterController cc;
+    Camera cam;
+
+    void Awake()
+    {
+        cc = GetComponent<CharacterController>();
+        cam = Camera.main;
+        if (animator != null) animator.applyRootMotion = false;
+    }
+
+    void Update()
+    {
+        Vector3 dir = fishing != null && fishing.Busy ? Vector3.zero : ReadInput();
+        Vector3 step = dir * Config.PlayerSpeed * Time.deltaTime;
+        step = Constrain(transform.position, step);
+        cc.Move(step + Vector3.down * 0.01f);   // 地面同高，只给一点贴地力
+        Speed01 = step.sqrMagnitude > 1e-8f ? 1f : 0f;
+        if (Speed01 > 0f)
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 12f * Time.deltaTime);
+        if (animator != null) animator.SetFloat(SpeedId, Speed01, 0.1f, Time.deltaTime);
+    }
+
+    Vector3 ReadInput()
+    {
+        var key = new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical"));
+        if (key.sqrMagnitude > 0.01f) return key.normalized;
+        bool pressed = Input.touchCount > 0 || Input.GetMouseButton(0);
+        if (!pressed || cam == null) return Vector3.zero;
+        if (Config.InFishSpot(transform.position) && (Input.GetMouseButtonDown(0) || TouchBegan())) return Vector3.zero;   // 单击留给抛竿
+        Vector2 screen = Input.touchCount > 0 ? Input.GetTouch(0).position : (Vector2)Input.mousePosition;
+        var ray = cam.ScreenPointToRay(screen);
+        var ground = new Plane(Vector3.up, new Vector3(0f, Config.GroundY, 0f));
+        if (!ground.Raycast(ray, out float d)) return Vector3.zero;
+        Vector3 to = ray.GetPoint(d) - transform.position;
+        to.y = 0f;
+        return to.sqrMagnitude > 0.04f ? to.normalized : Vector3.zero;
+    }
+
+    static bool TouchBegan() => Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began;
+
+    // 码头与沙滩以外不可走：整步不行就分轴滑动。
+    public static Vector3 Constrain(Vector3 pos, Vector3 step)
+    {
+        if (Config.IsWalkable(pos + step)) return step;
+        var sx = new Vector3(step.x, 0f, 0f);
+        if (Config.IsWalkable(pos + sx)) return sx;
+        var sz = new Vector3(0f, 0f, step.z);
+        if (Config.IsWalkable(pos + sz)) return sz;
+        return Vector3.zero;
+    }
+}

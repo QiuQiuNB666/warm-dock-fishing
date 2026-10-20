@@ -89,7 +89,7 @@ Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 as
 测试：同一脚本末尾清空场景、重新导入全部 FBX，断言命名合规、无孤立/重名材质、角色恰有 2 个动作且首尾帧位姿一致（只有这两段循环动画要闭合；抛竿/收线是 Unity 程序动画，不在此测），单行输出。
 
 ## Phase 3 — Unity 工程与场景（全 batchmode）
-1. `& $UNITY -batchmode -quit -createProject D:\warm\unity`
+1. `unity/Assets` 下第 5 节的代码已写好（win-7，只过了 Roslyn 编译检查）：不再 `-createProject`，直接 `& $UNITY -batchmode -nographics -quit -projectPath D:\warm\unity -logFile D:\tmp\p3o.log` 打开一次，让 Unity 补齐 ProjectSettings/ 与 Packages/。之后先跑测试，只修第一个失败项。
 2. 用 `$PY` 改 `Packages/manifest.json`：加 URP（版本见第 3 节），删未用模块与 inputsystem。
 3. `Copy-Item assets\*.fbx unity\Assets\Art\`
 4. `$UNITY -batchmode -nographics -quit -projectPath unity -executeMethod ProjectSetup.Run -logFile D:\tmp\p3a.log`：建两个 URP Asset 并挂到 Graphics/Quality；PlayerSettings 按第 4 节；内含 AssetPostprocessor（FBX 动画开 loop、根节点 XZ 位移 Bake Into Pose）。

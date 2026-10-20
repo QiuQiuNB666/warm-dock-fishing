@@ -46,3 +46,7 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - 工具链（D:）：Blender 4.5.9 便携 D:\tools\blender-4.5.9；MinGit 2.56.0.2 D:\tools\mingit；Unity Hub D:\Unity\Hub（UnityHubSetup-x64.exe /S，无 UAC；旧地址 UnityHubSetup.exe 已 404）；Unity 6000.3.26f1 + WebGLSupport 于 D:\Unity\Editors\6000.3.26f1（windowsstandalonesupport 自带），已 `editors --add` 登记进 Hub。
 - 坑：Hub 无头 install 把安装包下到 %APPDATA%\UnityHub\downloads（C:），4 GB+0.9 GB 撑爆 C: 致 INSTALL_ERROR。做法：安装包挪 D:\tools\dl、TEMP 指 D:\tmp\utemp，手动 `UnitySetup64-*.exe /S /D=<编辑器根>`、模块同 /D。以后加模块照此办理。
 - 无头启动：退出码 198，`No valid Unity Editor license found`——待用户在 Windows 桌面登录 Hub 激活个人版许可证。
+- win-7：第 5 节 Unity 侧代码已写入 unity/Assets（Editor 4 个、Scripts 10 个 + Game.asmdef、Water.shader、Tests.asmdef + 2 个测试，每个 C# ≤150 行）。**C# 仅过编译检查，未在 Unity 内运行**：用编辑器自带 Roslyn（NetCoreRuntime\dotnet + DotNetSdkRoslyn\csc.dll，netstandard 2.1 + Managed\UnityEngine\*.dll 模块，不引整包 UnityEditor.dll 否则类型重复），Game（Win/WebGL 两套宏）/Editor/Tests 三组 0 错误 0 警告。检查脚本放 D:\tools\jobs\csc_check.py（不入库）。Water.shader 未编译。
+- ProjectSetup 用反射建 URP Asset（不引用 URP 程序集），序列化字段 m_MSAA/m_RenderScale/m_MainLightShadowsSupported 缺失即报错退出；Animator 控制器（AC_character）也在 ProjectSetup.MakeAnimator 里，BuildScene 调用；FBX 导入规则（WarmImport）同文件。
+- 场景布局：沙滩台地顶面 = 码头顶面 = GroundY 1 m（角色不爬台阶）；瀑布做成 45° 斜崖（相机朝 +Z 俯视，竖直崖面看不见）；角色脚下影子圆片复用 Water.shader（波幅 0、黑色 35%）。色卡仍是占位，Phase 1 读参考图后只改 Config.cs。
+- Phase 3 第 1 步改为 `-projectPath D:\warm\unity` 打开已有目录，不再 -createProject。
