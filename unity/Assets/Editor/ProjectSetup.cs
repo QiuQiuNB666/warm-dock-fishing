@@ -26,12 +26,12 @@ public static class ProjectSetup
         var high = MakeUrp("URP_High", 4, 1f, true);
         var medium = MakeUrp("URP_Medium", 1, 0.8f, false);
         GraphicsSettings.defaultRenderPipeline = high;
+        BuildFx.TuneUrp(high, medium);
 
         var qs = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]);
         var levels = Prop(qs, "m_QualitySettings");
         levels.arraySize = 2;
-        Level(levels.GetArrayElementAtIndex(0), "High", high, 4);
-        Level(levels.GetArrayElementAtIndex(1), "Medium", medium, 0);
+        Level(levels.GetArrayElementAtIndex(0), "High", high, 4); Level(levels.GetArrayElementAtIndex(1), "Medium", medium, 0);
         Prop(qs, "m_CurrentQuality").intValue = 0;
         var per = Prop(qs, "m_PerPlatformDefaultQuality");
         bool web = false;

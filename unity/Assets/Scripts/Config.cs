@@ -25,8 +25,11 @@ public static class Config
     public const float PlayerSpeed = 3.5f;
 
     // 道具位置
-    public static readonly Vector3 BoatPos = new Vector3(DockWidth * 0.5f + 2.5f, SeaY, 14f);
-    public static readonly Vector3 CabinPos = new Vector3(-12f, GroundY, -10f);
+    public static readonly Vector3 BoatPos = new Vector3(DockWidth * 0.5f + 2.5f, SeaY - 0.2f, 14f);   // 吃水 0.2 m
+    public static readonly Vector3 CabinPos = new Vector3(-8f, GroundY, -3.5f);
+    public static readonly float[] LanternZ = { 2f, 10f, 18f };   // 码头左舷灯笼
+    public const int WebLamps = 2;   // 网页端最多亮几盏点光源（灯笼 + 小屋窗）
+    public static readonly Color LampColor = new Color(1f, 0.72f, 0.42f);
     public static readonly Vector3[] RockPos = { new Vector3(-8f, SeaY, 2f), new Vector3(9f, SeaY, 3f), new Vector3(-18f, SeaY, 6f) };
     public static readonly float[] RockScale = { 1.6f, 1f, 2.4f };
     public static readonly Vector3[] CratePos = { new Vector3(-1f, GroundY, 6f), new Vector3(1f, GroundY, 18f) };
@@ -38,6 +41,10 @@ public static class Config
     public const float CamFov = 35f;
     public const float CamDistance = 18f;
     public const float CamSmooth = 0.25f;
+    public static readonly Vector3 ShotFocus = new Vector3(-3f, GroundY, 1f);   // 时段截图的固定机位焦点
+
+    // 水面波形：Water.shader 与 Floater 共用同一公式
+    public const float WaveAmp = 0.08f, WaveLen = 6f, WaveSpeed = 1.2f;
     public static readonly Rect CamBounds = new Rect(-25f, -15f, 50f, 55f);
 
     // 自然
@@ -74,14 +81,15 @@ public static class Config
         new Bait("corn", 0.85f, new[] { 0.4f, 0.2f, 0.4f }),
     };
 
-    // 时段：晨/午/昏/夜，一天 DayLength 秒
+    // 时段：晨/午/昏/夜，一天 DayLength 秒。太阳(仰角,方位) + 环境光天空/地平线/地面三色 + 水色 + 夜灯亮度
     public const float DayLength = 240f;
+    public static readonly string[] TimeNames = { "morning", "noon", "dusk", "night" };
     public static readonly TimeKey[] Times =
     {
-        new TimeKey(new Color(1.00f, 0.85f, 0.70f), 0.9f, new Color(0.60f, 0.62f, 0.70f), new Color(0.35f, 0.78f, 0.80f, 0.55f)),
-        new TimeKey(new Color(1.00f, 0.97f, 0.90f), 1.2f, new Color(0.70f, 0.75f, 0.80f), new Color(0.25f, 0.80f, 0.78f, 0.55f)),
-        new TimeKey(new Color(1.00f, 0.60f, 0.40f), 0.8f, new Color(0.60f, 0.45f, 0.45f), new Color(0.45f, 0.55f, 0.65f, 0.6f)),
-        new TimeKey(new Color(0.45f, 0.55f, 0.85f), 0.3f, new Color(0.15f, 0.18f, 0.30f), new Color(0.10f, 0.20f, 0.35f, 0.7f)),
+        new TimeKey(new Color(1.00f, 0.72f, 0.48f), 0.9f, 14f, -70f, new Color(0.42f, 0.48f, 0.60f), new Color(0.60f, 0.47f, 0.37f), new Color(0.30f, 0.25f, 0.22f), new Color(0.22f, 0.64f, 0.70f, 0.55f), 0f),
+        new TimeKey(new Color(1.00f, 0.95f, 0.86f), 0.85f, 62f, -25f, new Color(0.40f, 0.48f, 0.58f), new Color(0.46f, 0.46f, 0.42f), new Color(0.30f, 0.27f, 0.22f), new Color(0.15f, 0.68f, 0.70f, 0.55f), 0f),
+        new TimeKey(new Color(1.00f, 0.48f, 0.30f), 0.95f, 12f, 70f, new Color(0.52f, 0.44f, 0.62f), new Color(0.92f, 0.55f, 0.40f), new Color(0.35f, 0.25f, 0.25f), new Color(0.30f, 0.44f, 0.58f, 0.6f), 0.5f),
+        new TimeKey(new Color(0.50f, 0.62f, 0.95f), 0.35f, 38f, 30f, new Color(0.10f, 0.14f, 0.28f), new Color(0.14f, 0.18f, 0.32f), new Color(0.06f, 0.06f, 0.10f), new Color(0.07f, 0.20f, 0.34f, 0.7f), 1f),
     };
 
     public static bool OnDock(Vector3 p) => Mathf.Abs(p.x) <= DockWidth * 0.5f - 0.3f && p.z >= -0.5f && p.z <= DockLength - 0.3f;
@@ -98,6 +106,11 @@ public readonly struct Bait
 
 public readonly struct TimeKey
 {
-    public readonly Color Light; public readonly float Intensity; public readonly Color Ambient; public readonly Color Water;
-    public TimeKey(Color light, float intensity, Color ambient, Color water) { Light = light; Intensity = intensity; Ambient = ambient; Water = water; }
+    public readonly Color Light; public readonly float Intensity, Elevation, Yaw; public readonly Color Sky, Equator, Ground, Water; public readonly float Glow;
+    public TimeKey(Color light, float intensity, float elevation, float yaw, Color sky, Color equator, Color ground, Color water, float glow)
+    { Light = light; Intensity = intensity; Elevation = elevation; Yaw = yaw; Sky = sky; Equator = equator; Ground = ground; Water = water; Glow = glow; }
+
+    public static TimeKey Lerp(TimeKey a, TimeKey b, float k) => new TimeKey(Color.Lerp(a.Light, b.Light, k), Mathf.Lerp(a.Intensity, b.Intensity, k),
+        Mathf.Lerp(a.Elevation, b.Elevation, k), Mathf.Lerp(a.Yaw, b.Yaw, k), Color.Lerp(a.Sky, b.Sky, k), Color.Lerp(a.Equator, b.Equator, k),
+        Color.Lerp(a.Ground, b.Ground, k), Color.Lerp(a.Water, b.Water, k), Mathf.Lerp(a.Glow, b.Glow, k));
 }

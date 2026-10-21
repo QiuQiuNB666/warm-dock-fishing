@@ -1,4 +1,6 @@
-# CLAUDE.md — 码头垂钓游戏 · 一键构建 v3.1（Windows 版）
+# CLAUDE.md — 码头垂钓游戏 · 一键构建 v3.2（Windows 版）
+
+> v3.2（2026-10-21）：用户拍板不充 Tripo、不用参考图；优先做光影（Phase 6）与动作（Phase 7），**建模（Phase 1 程序化建模）之后做**，场景里的 rock/boat/cabin 暂用占位模型。
 
 运行机：Windows 11 算力机 desktop-ahpct75（i3-12100F / RTX 4060 / 16 GB），项目根 `D:\warm`（MacBook `~/Warm` 只留作 v3 备份，不再改）。在该目录开 Claude Code，只发一句：「按 CLAUDE.md 从 Phase 0 开始，不要停，不要问。」
 
@@ -16,12 +18,12 @@ C: 只剩约 11 GB：一切安装、缓存、日志、构建都放 D:（临时�
 高角度俯视（俯角 60°，非 90°）低多边形绘本风游戏：角色在延伸至海的木码头上垂钓，海水绿松石色半透明、可见海底沙/珊瑚/水草/鱼。`ref/reference.jpg` 为唯一视觉标准。同一 Unity 工程双端交付：Windows 桌面（窗口/全屏）+ WebGL 网页，内容玩法一致，只允许第 4 节列出的差异。
 
 ## 1. 铁律（违反即回滚）
-1. 分工锁定：Tripo 只产模型 + 角色绑骨/预设动画；Blender 只整理导出；Unity 6 搭世界 + 玩法 + 程序动画；你只编排、写脚本、跑测试。
+1. 分工锁定（v3.2 用户拍板改）：模型由 Blender 代码程序化建模（`blender/model.py`，之后做）；角色骨架 + 简模人偶 + 关键帧动作由 `blender/rig.py` 产出；Blender 负责整理导出；Unity 6 搭世界 + 玩法 + 程序动画；你只编排、写脚本、跑测试。Tripo 不再使用（`scripts/tripo_gen.py` 留存备用）。
 2. 零提问：缺信息按本文默认值执行，并往 docs/decisions.md 追加一行。**唯一例外＝硬停**：以下任一发生，打印一行 `BLOCKED: <全部缺项>` 后停止，不重试、不绕路：Phase 0 前置检查任一项不过；Tripo 返回 401/402/429 或余额不足；同一外部服务连续 2 次 5xx/超时。
 3. 单点修复：测试失败只修第一个失败项再重测；同一点 3 次不过 → `& $GIT reset --hard; & $GIT clean -fd -e assets_raw` 回上一 Phase 换方案（仍单点修改）。
 4. 输出纪律：每 Phase 结束只打印一行 `PHASE-N PASS` 或 `PHASE-N FAIL: <首个原因>`；所有命令输出 `*> D:\tmp\pN.log`，失败只 `tail -20`；禁止打印文件全文、贴大段日志。
 5. 上下文纪律：先 Glob/Grep（head_limit≤20，排除 Library/ Temp/ obj/ Logs/ *.meta）再读；同一文件只读一次；新文件一次 Write 成型；二进制只验大小+文件头；ref/reference.jpg 仅 Phase 1 读一次，色卡与构图要点记入 decisions.md，之后不再读图。
-6. 验证纪律：验收全部程序化断言（脚本退出码 / 单行 PASS-FAIL / Unity 测试结果）；禁止截图验证循环；最终视觉由用户人工验收。
+6. 验证纪律：验收全部程序化断言（脚本退出码 / 单行 PASS-FAIL / Unity 测试结果）；禁止截图验证循环；最终视觉由用户人工验收。例外：建模允许看渲染图自查，每个模型最多 2 轮；Phase 6 四时段截图、Phase 7 演示录屏是交给用户的验收物，各自最多 3 轮。
 7. 批量脚本化：每 Phase 一个脚本一次执行。Blender 只用 `& $BLENDER -b -P <脚本>`，**不用 MCP**（本机那个开着 MCP 插件的 Blender 5.2 是远程入口，不许拿它干活、不许关它）。Unity 只准 Editor 脚本 + `-batchmode -nographics`，禁止开 Editor GUI、禁止 Package Manager 窗口。Windows 的 `timeout` 是 sleep 不是限时，限时用 `$p = Start-Process <exe> <args> -PassThru; if (-not $p.WaitForExit(N*1000)) { Stop-Process $p -Force }`。
 8. 文件锁定：只准创建第 5 节所列文件；禁止新增 README/文档/第三方包/依赖；每个 C# ≤150 行。
 9. 检查点：每 Phase 通过即 `& $GIT add -A; & $GIT commit -m "phase-N"`；Phase 1 每下载完一件模型立即单独 commit（Tripo 花额度，不许被回滚删掉）。中断恢复：git log 定 Phase + decisions.md 末行定状态，从下一 Phase 继续；禁止重读已完成内容。
@@ -57,11 +59,11 @@ D:\warm\
 
 ## 5. 文件清单（写死，禁止增删）
 ```
-scripts/tripo_gen.py   scripts/check_glb.py   scripts/web_check.py
-blender/clean.py
-unity/Assets/Editor/: ProjectSetup.cs BuildScene.cs BuildNature.cs BuildPlayer.cs
+scripts/tripo_gen.py（停用，留存）   scripts/check_glb.py   scripts/web_check.py
+blender/clean.py   blender/rig.py   blender/model.py（之后做）
+unity/Assets/Editor/: ProjectSetup.cs BuildScene.cs BuildNature.cs BuildPlayer.cs BuildFx.cs BuildCharacter.cs
 unity/Assets/Shaders/Water.shader
-unity/Assets/Scripts/: Game.asmdef Config.cs PlayerController.cs TopDownCamera.cs CharacterRig.cs
+unity/Assets/Scripts/: Game.asmdef Config.cs PlayerController.cs TopDownCamera.cs CharacterRig.cs Tackle.cs
                        FishingStateMachine.cs BaitSelector.cs TimeOfDay.cs Floater.cs FishSchool.cs GameBootstrap.cs
 unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
 ```
@@ -72,7 +74,11 @@ Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 as
 仓库已存在（从 MacBook 迁来，含 trial/win 提交）：只补齐第 2 节缺的目录 + decisions.md，再提交。
 测试：`$BLENDER -b --python-expr "import bpy;print('OK')"` 输出 OK。
 
-## Phase 1 — Tripo 4 模型 → assets_raw/
+## Phase 1 — 【之后做】Blender 程序化建模 → assets_raw/*.glb
+
+v3.2：改为 `& $BLENDER -b -P blender/model.py` 用代码搭 rock/boat/cabin（棱角低多边形、平直着色、每色一个纯色材质——URP Lit 不认顶点色），颜色按 decisions.md 文字色卡；角色由 Phase 7 的 rig.py 负责。下表的面上限照旧；下面 Tripo 的描述作废，仅留档。
+
+### （旧）Tripo 4 模型
 | 文件 | 要点 | 面上限 |
 |---|---|---|
 | rock | 海岸岩石（多尺寸靠缩放） | 3k |
@@ -113,3 +119,18 @@ Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 as
 - `& $PY scripts/web_check.py`（标准库，单行 PASS/FAIL）：后台起 `$PY -m http.server`；headless Edge（`$EDGE --headless=new --user-data-dir=D:\tmp\edge --enable-logging=stderr --v=1`，GPU 不可用时加 `--enable-unsafe-swiftshader`）打开页面，60 s 后结束 Edge 与 http.server；断言 `SCENE-READY` 恰出现 1 次、控制台 error 为 0；量 `Build/Web/Build` 合计 ≤60MB。
 - 桌面：构建退出码 0，且 `Warm.exe` 与 `Warm_Data/` 都存在；本机启动验收：`Start-Process unity\Build\Desktop\Warm.exe "-logFile D:\tmp\Player.log -screen-fullscreen 0" -PassThru`，30 s 后 `Stop-Process`，`D:\tmp\Player.log` 里 `SCENE-READY` 恰 1 次。
 验收：网页端能进码头场景、角色可走动、画质档为 Medium、包 ≤60MB；桌面 exe 本机能起到 SCENE-READY。全屏切换（Alt+Enter）与手感由用户人工验收。
+
+## Phase 6 — 光影（v3.2，提交 `light-N`）
+1. TimeOfDay：晨（低角度暖橙、影长）/午（高角度白偏暖）/昏（低角度橙红）/夜（冷蓝月光、低强度）四个 TimeKey，smoothstep 插值太阳仰角/方位/颜色/强度；环境光 Trilight（天空/地平线/地面三色）随时段变。常量全在 Config.Times。
+2. 阴影：URP_High 软阴影、阴影距离 40 m、2 级联、2048；URP_Medium 无实时阴影，只有角色脚下圆片（BuildFx.TuneUrp，由 ProjectSetup 调用）。
+3. Water.shader：颜色随时段（`_Color` 由 TimeOfDay 写）、近岸浅远处深（按世界 z 距岸线）、太阳高光 + 菲涅耳、近岸更透明，海底始终可见。波形公式与 `Floater.Wave` 逐项一致（参数 Config.WaveAmp/Len/Speed）。
+4. 夜灯：码头左舷 3 盏灯笼 + 小屋朝相机一面的两扇窗，共用发光材质 M_glow + 点光源，亮度 = 时段 Glow；网页端只留前 Config.WebLamps=2 盏点光源。
+5. 后期：全局 Volume（Settings/PostFx.asset）：Neutral 色调映射、暖色 WhiteBalance/ColorFilter、柔和 Bloom、轻暗角；网页端运行时关 Bloom。
+6. 验收：`Warm.exe -shots <dir>` 固定机位（Config.ShotFocus）四时段各截一张 light_{morning,noon,dusk,night}.png 后退出；图传 iMac `码头垂钓/preview/`。
+
+## Phase 7 — 动作（v3.2，提交 `anim-N`）
+1. 骨架（以后正式模型沿用）：hips/spine/chest/neck/head(+hat)，左右 shoulder/upperarm/forearm/hand，左右 thigh/shin/foot，rod_mount 挂在 hand.R。`blender/rig.py` 产出简模人偶（胶囊身体 + 大草帽）+ 8 段原地烘焙动作 AN_idle/walk/cast/wait/bite/reel/catch/lose → assets_raw/character.glb；clean.py 只要求 idle/walk/wait/reel 首尾帧一致。
+2. Unity：BuildCharacter 建 8 态 Animator（idle↔walk 由 Speed 切换，walk 播放速度 = 实际速度 / Config.WalkAnimSpeed 防滑步）；CharacterRig 把 FishingStateMachine 的状态交叉淡入到对应动作，并按张力弯三节鱼竿；鱼竿挂在 rod_mount 上。
+3. Tackle：贝塞尔下垂鱼线、抛物线抛投、落水/咬钩/挣扎水花（单个 ParticleSystem 反复 Emit＝对象池）、浮漂随浪/咬钩下沉、鱼游近浮漂/水下挣扎往外拖/钓上跃出；船与浮漂用 Floater.Wave（与水面 shader 同一公式）。
+4. 演示：`Warm.exe -demo` 角色自动走到码头尽头完整钓一条鱼；ffmpeg 便携版（D:\tools\ffmpeg）gdigrab 录 30 s → iMac `码头垂钓/preview/demo.mp4`。
+测试：EditMode 全绿（新增 CharacterClipsAndFacing：8 段动作齐全、循环设置正确、持竿姿势下挂点在角色前方）；照常 Phase 5 两端打包 + 冒烟。

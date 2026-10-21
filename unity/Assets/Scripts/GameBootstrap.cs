@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 public class GameBootstrap : MonoBehaviour
 {
@@ -12,10 +14,19 @@ public class GameBootstrap : MonoBehaviour
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         Application.targetFrameRate = -1;   // 交给浏览器
+        var v = FindAnyObjectByType<Volume>();
+        if (v != null && v.profile.TryGet(out Bloom bloom)) bloom.active = false;   // Medium 档：关 Bloom 保帧率
 #else
         QualitySettings.vSyncCount = 1;
         Application.targetFrameRate = 60;
 #endif
+    }
+
+    public static string Arg(string name)
+    {
+        var a = System.Environment.GetCommandLineArgs();
+        int i = System.Array.IndexOf(a, name);
+        return i < 0 ? null : i + 1 < a.Length ? a[i + 1] : "";
     }
 
     IEnumerator Start()
@@ -24,6 +35,27 @@ public class GameBootstrap : MonoBehaviour
         if (announced) yield break;
         announced = true;
         Debug.Log("SCENE-READY");
+        string dir = Arg("-shots");
+        if (!string.IsNullOrEmpty(dir)) StartCoroutine(Shots(dir));
+    }
+
+    // -shots <dir>：固定机位，四个时段各截一张 light_<时段>.png 后退出。
+    IEnumerator Shots(string dir)
+    {
+        var tod = FindAnyObjectByType<TimeOfDay>();
+        tod.frozen = true;
+        var cam = Camera.main;
+        cam.GetComponent<TopDownCamera>().enabled = false;
+        TopDownCamera.Place(cam.transform, Config.ShotFocus);
+        for (int i = 0; i < Config.TimeNames.Length; i++)
+        {
+            tod.t = i / (float)Config.TimeNames.Length;
+            yield return new WaitForSeconds(1.5f);
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(dir, $"light_{Config.TimeNames[i]}.png"));
+            yield return new WaitForSeconds(0.5f);
+        }
+        Debug.Log("SHOTS-DONE");
+        Application.Quit();
     }
 
     void Update()

@@ -62,3 +62,15 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - web_check.py：Edge 把页面所有 console 级别都记成 INFO，无法按级别数 error → 改为进程内 http.server（标准库线程，不再单起 -m http.server），只在发给浏览器的 index.html 里加钩子把 console.error / 未捕获异常打 WEBCHECK-ERROR 标记计数；构建产物不改。已用含 console.error 的假页面验证会判 FAIL。
 - 汇总默认值：Unity 6000.3.26f1 / URP 17.3.0 / test-framework 1.6.0；桌面 Mono、网页 WebGL2 IL2CPP 剥离 High；URP_High(MSAA4/阴影) 桌面、URP_Medium(0.8/无 MSAA/无阴影) 网页；旧 Input Manager；OnGUI；色卡仍是 Config.cs 占位色；模型仍是占位。
 - 未验证（需人工）：Alt+Enter 全屏、走动/钓鱼手感、网页端实际画质档（web_check 只验到 SCENE-READY 与 0 报错）。
+
+## v3.2 光影（2026-10-21，light）
+- 用户拍板：不充 Tripo、不用参考图、建模之后做；优先光影与动作。rock/boat/cabin 仍是占位模型。
+- 时段 TimeKey（Config.Times）：太阳仰角/方位 晨 14°/-70°、午 62°/-25°、昏 12°/70°、夜(月) 38°/30°；插值改 smoothstep（端点与中点值不变，旧测试照过）。环境光改 Trilight 三色。
+- 坑：HDR + Bloom 不加色调映射，午时整片过曝 → Volume 加 Neutral Tonemapping，并压低午时太阳与环境光。午时仍偏亮（沙地接近米白），最终包再降一次。
+- 阴影：URP_High m_SoftShadowsSupported/阴影距离 40/2 级联/2048；点光源 per-pixel，High 每物体 4、Medium 2；WebGL 运行时只留 2 盏点光源。
+- 水面：近岸浅/远处深按世界 z（岸线 z=0，_ShoreFade 30 m）而不是深度图——网页端不用开 Depth Texture；影子圆片 _Lift/_Spec=0 退化成纯色。
+- 浮漂/船改用 Floater.Wave（与 Water.shader 同公式，时间用 Time.timeSinceLevelLoad = shader 的 _Time.y）；船锚点下沉 0.2 m 当吃水。
+- 小屋挪到 (-8,1,-3.5)、灯笼在码头左舷 z=2/10/18，让固定机位里能同时看到小屋窗和灯笼。
+- 截图：`Warm.exe -shots <dir> -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`，ScreenCapture 在 Player 内截，不用 PowerShell 截屏。
+- Game.asmdef 加引用 Unity.RenderPipelines.Core.Runtime / Universal.Runtime（网页端关 Bloom 要用 Volume 类型）。
+

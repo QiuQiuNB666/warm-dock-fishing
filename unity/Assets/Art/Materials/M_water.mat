@@ -25,6 +25,9 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
+    - _Lift: 0.6
+    - _ShoreFade: 30
+    - _Spec: 1
     - _WaveAmp: 0.08
     - _WaveLen: 6
     - _WaveSpeed: 1.2

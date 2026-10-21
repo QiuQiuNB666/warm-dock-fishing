@@ -26,7 +26,7 @@ public static class BuildScene
 
         // 海面 + 海底
         var water = new Material(Shader.Find("Warm/Water"));
-        water.SetColor("_Color", Config.Sea);
+        water.SetColor("_Color", Config.Sea); water.SetFloat("_WaveAmp", Config.WaveAmp); water.SetFloat("_WaveLen", Config.WaveLen); water.SetFloat("_WaveSpeed", Config.WaveSpeed);
         AssetDatabase.CreateAsset(water, Art + "Materials/M_water.mat");
         var sea = new GameObject("Sea", typeof(MeshFilter), typeof(MeshRenderer));
         sea.transform.SetParent(root, false);
@@ -34,8 +34,7 @@ public static class BuildScene
         sea.GetComponent<MeshFilter>().sharedMesh = BuildNature.SaveMesh(BuildNature.Grid(Config.SeaSize.x, Config.SeaSize.y, 80, 60), "sea");
         sea.GetComponent<MeshRenderer>().sharedMaterial = water;
         BuildNature.Box("Seabed", root, new Vector3(0f, Config.SeabedY - 0.5f, Config.SeaSize.y * 0.5f), new Vector3(Config.SeaSize.x, 1f, Config.SeaSize.y), BuildNature.Mat("M_seabed", Config.Seabed));
-        var coral = BuildNature.Mat("M_coral", Config.Coral);
-        var weed = BuildNature.Mat("M_weed", Config.Weed);
+        Material coral = BuildNature.Mat("M_coral", Config.Coral), weed = BuildNature.Mat("M_weed", Config.Weed);
         var rng = new System.Random(3);
         for (int i = 0; i < 24; i++)
         {
@@ -76,7 +75,7 @@ public static class BuildScene
         // Tripo 模型（缺了就用方块占位，场景照样能搭）
         var boat = Model("SM_boat", root, Config.BoatPos, new Vector3(1.5f, 0.6f, 3.5f), wood);
         boat.AddComponent<Floater>();
-        Model("SM_cabin", root, Config.CabinPos, new Vector3(4f, 3f, 4f), woodDark);
+        var cabin = Model("SM_cabin", root, Config.CabinPos, new Vector3(4f, 3f, 4f), woodDark);
         for (int i = 0; i < Config.RockPos.Length; i++)
             Model("SM_rock", root, Config.RockPos[i], Vector3.one, BuildNature.Mat("M_cliff", Config.Cliff)).transform.localScale = Vector3.one * Config.RockScale[i];
 
@@ -99,7 +98,7 @@ public static class BuildScene
         var line = player.AddComponent<LineRenderer>();
         line.widthMultiplier = 0.015f; line.positionCount = 2;
         var shadow = new Material(Shader.Find("Warm/Water"));
-        shadow.SetColor("_Color", new Color(0f, 0f, 0f, 0.35f)); shadow.SetFloat("_WaveAmp", 0f);
+        shadow.SetColor("_Color", new Color(0f, 0f, 0f, 0.35f)); shadow.SetFloat("_WaveAmp", 0f); shadow.SetFloat("_Lift", 0f); shadow.SetFloat("_Spec", 0f);
         AssetDatabase.CreateAsset(shadow, Art + "Materials/M_shadow.mat");
         var disc = Prim(PrimitiveType.Quad, "ShadowDisc", player.transform, Config.PlayerStart + Vector3.up * 0.01f, Vector3.one * 0.9f, shadow);
         disc.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
@@ -122,6 +121,7 @@ public static class BuildScene
         var game = new GameObject("Game");
         game.AddComponent<GameBootstrap>();
         var tod = game.AddComponent<TimeOfDay>(); tod.sun = sun; tod.water = water;
+        BuildFx.Build(root, cabin, tod, cam.GetComponent<Camera>());
         game.AddComponent<BaitSelector>().fishing = fishing;
 
         BuildNature.Build(root, water);
