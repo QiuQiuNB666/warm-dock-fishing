@@ -162,8 +162,9 @@ def export_fbx(path, objs, armature):
     select(objs)
     bpy.ops.export_scene.fbx(
         filepath=path, use_selection=True, object_types={"MESH", "ARMATURE"},
-        apply_scale_options="FBX_SCALE_ALL", axis_forward="-Z", axis_up="Y",
-        # no bake_space_transform: Unity side sets ModelImporter.bakeAxisConversion=true for every FBX
+        apply_scale_options="FBX_SCALE_ALL", axis_forward="Y", axis_up="Z",
+        # native Z-up axes, no bake_space_transform: else Blender puts -90X on the root node; Unity's
+        # ModelImporter.bakeAxisConversion=true then bakes Z-up -> Y-up into the vertices (root rotation stays 0)
         path_mode="COPY", embed_textures=True, add_leaf_bones=False,
         bake_anim=armature, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
         bake_anim_force_startend_keying=True)

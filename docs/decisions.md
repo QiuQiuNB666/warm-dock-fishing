@@ -50,3 +50,10 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - ProjectSetup 用反射建 URP Asset（不引用 URP 程序集），序列化字段 m_MSAA/m_RenderScale/m_MainLightShadowsSupported 缺失即报错退出；Animator 控制器（AC_character）也在 ProjectSetup.MakeAnimator 里，BuildScene 调用；FBX 导入规则（WarmImport）同文件。
 - 场景布局：沙滩台地顶面 = 码头顶面 = GroundY 1 m（角色不爬台阶）；瀑布做成 45° 斜崖（相机朝 +Z 俯视，竖直崖面看不见）；角色脚下影子圆片复用 Water.shader（波幅 0、黑色 35%）。色卡仍是占位，Phase 1 读参考图后只改 Config.cs。
 - Phase 3 第 1 步改为 `-projectPath D:\warm\unity` 打开已有目录，不再 -createProject。
+
+## Phase 3–5 Windows 首跑（2026-10-21，占位模型）
+- **assets/ 是占位模型**（clean.py --placeholders 生成于 D:\tmp\warm_ph → clean.py 正式流程），Tripo 充值后跑 Phase 1–2 替换。
+- manifest：加 URP 17.3.0（编辑器自带版本）+ com.unity.test-framework 1.6.0（新建工程的默认 manifest 不含它，测试缺 NUnit 编译失败）；删 inputsystem（本来就没有）/multiplayer.center/adaptiveperformance/androidjni/unityanalytics 与 video/vr/xr/cloth/vehicles/wind/umbra 模块。
+- ProjectSetup 反射写 URP 字段 m_MSAA/m_RenderScale/m_MainLightShadowsSupported 在 URP 17.3 下一次通过；Water.shader 编译无错。
+- FBX 根节点 90° 旋转修复：Blender 用 -Z/Y 轴导出时把 -90°X 写在根节点上，Unity bakeAxisConversion 管不到。clean.py 改为原生 axis_forward=Y/axis_up=Z 导出，由 Unity bakeAxisConversion 烘进顶点 → 根旋转 0（推翻上面 trial-3 那条「Unity 侧开 bake 即可」的推断）。
+- Phase 3 EditMode 18/18（BuildSceneTests 6 + SystemsTests 12）。
