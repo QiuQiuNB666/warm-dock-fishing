@@ -132,5 +132,5 @@ v3.2：改为 `& $BLENDER -b -P blender/model.py` 用代码搭 rock/boat/cabin�
 1. 骨架（以后正式模型沿用）：hips/spine/chest/neck/head(+hat)，左右 shoulder/upperarm/forearm/hand，左右 thigh/shin/foot，rod_mount 挂在 hand.R。`blender/rig.py` 产出简模人偶（胶囊身体 + 大草帽）+ 8 段原地烘焙动作 AN_idle/walk/cast/wait/bite/reel/catch/lose → assets_raw/character.glb；clean.py 只要求 idle/walk/wait/reel 首尾帧一致。
 2. Unity：BuildCharacter 建 8 态 Animator（idle↔walk 由 Speed 切换，walk 播放速度 = 实际速度 / Config.WalkAnimSpeed 防滑步）；CharacterRig 把 FishingStateMachine 的状态交叉淡入到对应动作，并按张力弯三节鱼竿；鱼竿挂在 rod_mount 上。
 3. Tackle：贝塞尔下垂鱼线、抛物线抛投、落水/咬钩/挣扎水花（单个 ParticleSystem 反复 Emit＝对象池）、浮漂随浪/咬钩下沉、鱼游近浮漂/水下挣扎往外拖/钓上跃出；船与浮漂用 Floater.Wave（与水面 shader 同一公式）。
-4. 演示：`Warm.exe -demo` 角色自动走到码头尽头完整钓一条鱼；ffmpeg 便携版（D:\tools\ffmpeg）gdigrab 录 30 s → iMac `码头垂钓/preview/demo.mp4`。
+4. 演示：`Warm.exe -demo` 角色自动走到码头尽头完整钓一条鱼；`-frames <dir>` 让游戏以 30 fps 游戏时间逐帧截图 900 帧后退出，再用 ffmpeg 便携版（D:\tools\ffmpeg，BtbN 构建）合成 30 s → iMac `码头垂钓/preview/demo.mp4`。（gdigrab 抓窗口会被别的窗口遮挡/拿到旧画面，弃用。）
 测试：EditMode 全绿（新增 CharacterClipsAndFacing：8 段动作齐全、循环设置正确、持竿姿势下挂点在角色前方）；照常 Phase 5 两端打包 + 冒烟。

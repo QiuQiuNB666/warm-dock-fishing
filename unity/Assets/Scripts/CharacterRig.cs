@@ -1,42 +1,55 @@
 using UnityEngine;
 
-// 在 Animator 之后（LateUpdate）叠加程序动画：抛竿/收线的右臂与鱼竿；无骨骼时退回整身起伏/摇摆。
+// FishingStateMachine 状态 → Animator 交叉淡入；LateUpdate 按张力弯鱼竿；无骨骼时退回整身起伏/摇摆。
 public class CharacterRig : MonoBehaviour
 {
     public FishingStateMachine fishing;
     public PlayerController player;
-    public Transform rightArm;   // 上臂骨骼，BuildScene 按名字找；找不到为 null
-    public Transform rod;
-    public Transform body;       // 静态角色退路：整体起伏的网格根
+    public Animator animator;
+    public Transform[] rodJoints;   // 鱼竿三节，从根到梢
+    public Transform body;          // 静态角色退路：整体起伏的网格根
 
-    Quaternion rodBase;
+    static readonly string[] StateClip = { "idle", "cast", "wait", "bite", "reel", "catch", "lose" };   // 按 FishState 顺序
+    static readonly float[] BendShare = { 0.2f, 0.3f, 0.5f };   // 越靠梢弯得越多
+    FishState last;
     Vector3 bodyBase;
 
-    void Start()
-    {
-        if (rod != null) rodBase = rod.localRotation;
-        if (body != null) bodyBase = body.localPosition;
-    }
+    public static string ClipFor(FishState s) => StateClip[(int)s];
+    public static readonly string[] Clips = { "idle", "walk", "cast", "wait", "bite", "reel", "catch", "lose" };   // SK_character 的 AN_* 动作
 
-    public static float RodPitch(FishState s, float timer, float tension)
+    // 角色朝向：持竿姿势下鱼竿挂点在髋部前方（玩家 +Z）为正
+    public static float Facing(Transform player, Transform hips, Transform mount) =>
+        hips == null ? 1f : Vector3.Dot(mount.position - hips.position, player.forward);
+
+    // 鱼竿总弯曲角（度）：收线时随张力加大并抖动
+    public static float RodBend(FishState s, float timer, float tension)
     {
         switch (s)
         {
-            case FishState.Cast: return Mathf.Lerp(-70f, 30f, Mathf.Clamp01(timer / Config.CastTime));   // 后扬再甩出
-            case FishState.Wait: return 30f;
-            case FishState.Bite: return 30f + Mathf.Sin(timer * 40f) * 4f;
-            case FishState.Reel: return Mathf.Lerp(10f, -30f, tension) + Mathf.Sin(timer * 12f) * 3f;
-            case FishState.Caught: return -45f;
-            default: return 0f;
+            case FishState.Bite: return 20f + Mathf.Sin(timer * 40f) * 6f;
+            case FishState.Reel: return 15f + tension * 45f + Mathf.Sin(timer * 14f) * 4f;
+            case FishState.Caught: return 30f;
+            default: return 4f;
         }
+    }
+
+    void Start() { if (body != null) bodyBase = body.localPosition; }
+
+    void Update()
+    {
+        var s = fishing.Logic.State;
+        if (s == last) return;
+        last = s;
+        if (animator != null) animator.CrossFadeInFixedTime(ClipFor(s), 0.15f);
     }
 
     void LateUpdate()
     {
-        var logic = fishing != null ? fishing.Logic : null;
-        float pitch = logic != null ? RodPitch(logic.State, logic.Timer, logic.Tension) : 0f;
-        if (rod != null) rod.localRotation = rodBase * Quaternion.Euler(pitch, 0f, 0f);
-        if (rightArm != null) rightArm.localRotation *= Quaternion.Euler(pitch * 0.6f, 0f, 0f);
+        var logic = fishing.Logic;
+        float bend = RodBend(logic.State, logic.Timer, logic.Tension);
+        if (rodJoints != null)
+            for (int i = 0; i < rodJoints.Length && i < BendShare.Length; i++)
+                rodJoints[i].localRotation = Quaternion.Euler(bend * BendShare[i], 0f, 0f);
         if (body != null)
         {
             float moving = player != null ? player.Speed01 : 0f;

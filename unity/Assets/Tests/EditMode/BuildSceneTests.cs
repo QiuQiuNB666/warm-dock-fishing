@@ -60,8 +60,8 @@ public class BuildSceneTests
         var p = One("Player");
         var fishing = p.GetComponent<FishingStateMachine>();
         Assert.IsNotNull(p.GetComponent<CharacterController>());
-        Assert.IsNotNull(fishing.bobber);
-        Assert.IsNotNull(fishing.rodTip);
+        var tackle = p.GetComponent<Tackle>();
+        Assert.IsNotNull(tackle.bobber); Assert.IsNotNull(tackle.rodTip); Assert.IsNotNull(tackle.splash); Assert.IsNotNull(tackle.fish);
         Assert.AreSame(fishing, p.GetComponent<PlayerController>().fishing);
         Assert.AreSame(fishing, p.GetComponent<CharacterRig>().fishing);
         Assert.AreSame(fishing, One("Game").GetComponent<BaitSelector>().fishing);
@@ -81,5 +81,20 @@ public class BuildSceneTests
                 if (child.GetComponent<Renderer>() != null)
                     Assert.That(Quaternion.Angle(Quaternion.identity, child.localRotation), Is.LessThan(0.5f), $"{name}/{child.name}");
         }
+    }
+
+    // 8 段动作都在、循环/一次性设置对；持竿姿势下鱼竿挂点在髋部前方（角色没背对走路方向）
+    [Test] public void CharacterClipsAndFacing()
+    {
+        var clips = AssetDatabase.LoadAllAssetsAtPath("Assets/Art/SK_character.fbx").OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview")).ToDictionary(c => c.name);
+        foreach (var n in CharacterRig.Clips) Assert.IsTrue(clips.ContainsKey("AN_" + n), n);
+        foreach (var n in new[] { "idle", "walk", "wait", "reel" }) Assert.IsTrue(clips["AN_" + n].isLooping, n);
+        foreach (var n in new[] { "cast", "bite", "catch", "lose" }) Assert.IsFalse(clips["AN_" + n].isLooping, n);
+        var p = One("Player");
+        var anim = p.GetComponentInChildren<Animator>();
+        Transform Bone(string n) => anim.GetComponentsInChildren<Transform>().Single(t => t.name == n);
+        clips["AN_wait"].SampleAnimation(anim.gameObject, 0f);
+        Assert.Greater(CharacterRig.Facing(p.transform, Bone("hips"), Bone("rod_mount")), 0.05f);
+        Assert.IsTrue(Bone("rod_mount").GetComponentsInChildren<Transform>().Any(t => t.name == "RodTip"));
     }
 }

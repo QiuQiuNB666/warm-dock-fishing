@@ -9,6 +9,8 @@ public class GameBootstrap : MonoBehaviour
     static bool announced;
     bool hud;
     float fps;
+    string frameDir;   // -frames <dir>：演示录像，按 30 fps 游戏时间逐帧截图（不受别的窗口遮挡）
+    int frame;
 
     void Awake()
     {
@@ -17,6 +19,8 @@ public class GameBootstrap : MonoBehaviour
         var v = FindAnyObjectByType<Volume>();
         if (v != null && v.profile.TryGet(out Bloom bloom)) bloom.active = false;   // Medium 档：关 Bloom 保帧率
 #else
+        var disc = GameObject.Find("ShadowDisc");
+        if (disc != null) disc.SetActive(false);   // 桌面有实时软阴影，圆片只给网页
         QualitySettings.vSyncCount = 1;
         Application.targetFrameRate = 60;
 #endif
@@ -37,6 +41,8 @@ public class GameBootstrap : MonoBehaviour
         Debug.Log("SCENE-READY");
         string dir = Arg("-shots");
         if (!string.IsNullOrEmpty(dir)) StartCoroutine(Shots(dir));
+        frameDir = Arg("-frames");
+        if (!string.IsNullOrEmpty(frameDir)) Time.captureFramerate = 30;
     }
 
     // -shots <dir>：固定机位，四个时段各截一张 light_<时段>.png 后退出。
@@ -61,6 +67,11 @@ public class GameBootstrap : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.F3)) hud = !hud;
+        if (!string.IsNullOrEmpty(frameDir) && Time.captureFramerate > 0)
+        {
+            ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(frameDir, $"f{frame:0000}.png"));
+            if (++frame >= 900) Application.Quit();   // 30 s
+        }
         fps = Mathf.Lerp(fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 1e-4f), 0.1f);
     }
 

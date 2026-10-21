@@ -93,26 +93,10 @@ public static class ProjectSetup
 
     static SerializedProperty Prop(SerializedObject so, string name) =>
         so.FindProperty(name) ?? throw new System.Exception($"missing serialized field {name} on {so.targetObject.GetType().Name}");
-
-    // 角色 Animator：idle/walk 两态，Speed>0.5 走路。
-    public static AnimatorController MakeAnimator()
-    {
-        const string fbx = "Assets/Art/SK_character.fbx";
-        var ac = AnimatorController.CreateAnimatorControllerAtPath("Assets/Art/AC_character.controller");
-        ac.AddParameter("Speed", AnimatorControllerParameterType.Float);
-        var clips = AssetDatabase.LoadAllAssetsAtPath(fbx).OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview")).ToArray();
-        var sm = ac.layers[0].stateMachine;
-        var idle = sm.AddState("idle"); idle.motion = clips.FirstOrDefault(c => c.name == "AN_idle");
-        var walk = sm.AddState("walk"); walk.motion = clips.FirstOrDefault(c => c.name == "AN_walk");
-        sm.defaultState = idle;
-        var go = idle.AddTransition(walk); go.hasExitTime = false; go.duration = 0.1f; go.AddCondition(AnimatorConditionMode.Greater, 0.5f, "Speed");
-        var back = walk.AddTransition(idle); back.hasExitTime = false; back.duration = 0.1f; back.AddCondition(AnimatorConditionMode.Less, 0.5f, "Speed");
-        return ac;
-    }
 }
 
 // FBX：轴向烘焙（decisions.md：Blender 侧不 bake_space_transform，Unity 侧必须开）、1 单位=1m；
-// 动画全部循环、根节点 XZ 位移烘进姿势；贴图 WebGL 覆盖 1024 + DXT。
+// 循环动作（idle/walk/wait/reel）开 loop，一次性动作不开；根节点 XZ 位移烘进姿势；贴图 WebGL 覆盖 1024 + DXT。
 public class WarmImport : AssetPostprocessor
 {
     void OnPreprocessModel()
@@ -124,6 +108,7 @@ public class WarmImport : AssetPostprocessor
         bool skinned = Path.GetFileName(assetPath).StartsWith("SK_");
         mi.animationType = skinned ? ModelImporterAnimationType.Generic : ModelImporterAnimationType.None;
         mi.importAnimation = skinned;
+        if (skinned) mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;   // 默认 NoAvatar 时模型上不带 Animator
     }
 
     void OnPreprocessAnimation()
@@ -132,10 +117,10 @@ public class WarmImport : AssetPostprocessor
         var clips = mi.defaultClipAnimations;
         foreach (var c in clips)
         {
-            c.loopTime = true;
+            string n = c.name.ToLower(), tag = CharacterRig.Clips.FirstOrDefault(t => n.Contains(t));
+            if (tag != null) c.name = "AN_" + tag;
+            c.loopTime = tag == "idle" || tag == "walk" || tag == "wait" || tag == "reel";
             c.lockRootPositionXZ = true;
-            string n = c.name.ToLower();
-            c.name = n.Contains("idle") ? "AN_idle" : n.Contains("walk") ? "AN_walk" : c.name;
         }
         mi.clipAnimations = clips;
     }

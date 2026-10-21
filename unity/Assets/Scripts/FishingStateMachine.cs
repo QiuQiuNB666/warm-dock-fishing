@@ -72,39 +72,36 @@ public class FishingLogic
     void Enter(FishState s) { State = s; Timer = 0f; }
 }
 
-// 薄外壳：读输入、驱动浮漂和鱼线。
+// 薄外壳：读输入（或 -demo 自动操作）；浮漂/鱼线表现在 Tackle。
 public class FishingStateMachine : MonoBehaviour
 {
-    public Transform rodTip;
-    public Floater bobber;
-    public LineRenderer line;
+    public static readonly bool Demo = GameBootstrap.Arg("-demo") != null;
     public FishingLogic Logic { get; private set; }
     public bool Busy => Logic.State != FishState.Idle;
+    float atSpot;
+    int logged;
 
-    void Awake() { Logic = new FishingLogic(System.Environment.TickCount); }
+    void Awake() { Logic = new FishingLogic(Demo ? 7 : System.Environment.TickCount); }
 
     void Update()
     {
         bool down = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
         bool hold = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+        if (Demo) DemoInput(out down, out hold);
         if (down && (Busy || Config.InFishSpot(transform.position))) Logic.Press();
         Logic.Tick(Time.deltaTime, hold);
-        UpdateTackle();
+        if (Demo && Logic.CaughtCount > logged) { logged = Logic.CaughtCount; Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}"); }
     }
 
-    void UpdateTackle()
+    // 演示：走到码头尽头站稳 1 s 后抛竿，咬钩 0.4 s 后提竿，收线时张力 <0.7 才拉；钓上一条就停。
+    void DemoInput(out bool down, out bool hold)
     {
-        bool wet = Logic.State >= FishState.Wait && Logic.State <= FishState.Reel;
-        if (bobber == null) return;
-        bobber.gameObject.SetActive(wet);
-        if (line != null) line.enabled = wet;
-        if (!wet) return;
-        Vector3 cast = Config.FishSpot + Vector3.forward * Config.CastDistance;
-        Vector3 near = transform.position + transform.forward * 1.5f;
-        Vector3 p = Vector3.Lerp(cast, near, Logic.State == FishState.Reel ? Logic.Progress : 0f);
-        bobber.SetAnchor(new Vector3(p.x, Config.SeaY, p.z));
-        bobber.dip = Logic.State == FishState.Bite ? 1f : Logic.State == FishState.Reel ? Logic.Tension : 0f;
-        if (line != null && rodTip != null) { line.SetPosition(0, rodTip.position); line.SetPosition(1, bobber.transform.position); }
+        var s = Logic.State;
+        bool there = PlayerController.DemoArrived(transform.position);
+        atSpot = there && s == FishState.Idle ? atSpot + Time.deltaTime : 0f;
+        if (atSpot > 1f && Logic.CaughtCount == 0) Logic.WaitFactor = 0.5f;
+        down = (atSpot > 1f && Logic.CaughtCount == 0) || (s == FishState.Bite && Logic.Timer > 0.4f);
+        hold = s == FishState.Reel && Logic.Tension < 0.7f;
     }
 
     void OnGUI()

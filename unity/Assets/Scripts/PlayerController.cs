@@ -7,7 +7,7 @@ public class PlayerController : MonoBehaviour
     public FishingStateMachine fishing;
     public float Speed01 { get; private set; }
 
-    static readonly int SpeedId = Animator.StringToHash("Speed");
+    static readonly int SpeedId = Animator.StringToHash("Speed"), WalkScaleId = Animator.StringToHash("WalkScale");
     CharacterController cc;
     Camera cam;
 
@@ -25,13 +25,24 @@ public class PlayerController : MonoBehaviour
         step = Constrain(transform.position, step);
         cc.Move(step + Vector3.down * 0.01f);   // 地面同高，只给一点贴地力
         Speed01 = step.sqrMagnitude > 1e-8f ? 1f : 0f;
-        if (Speed01 > 0f)
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 12f * Time.deltaTime);
-        if (animator != null) animator.SetFloat(SpeedId, Speed01, 0.1f, Time.deltaTime);
+        Vector3 face = Speed01 > 0f ? dir : FishingStateMachine.Demo && DemoArrived(transform.position) ? Vector3.forward : Vector3.zero;
+        if (face != Vector3.zero)
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(face), 12f * Time.deltaTime);
+        if (animator == null) return;
+        animator.SetFloat(SpeedId, Speed01, 0.1f, Time.deltaTime);
+        animator.SetFloat(WalkScaleId, step.magnitude / Mathf.Max(Time.deltaTime, 1e-4f) / Config.WalkAnimSpeed);   // 步频跟实际速度走，不滑步
     }
+
+    public static bool DemoArrived(Vector3 p) => new Vector2(p.x - Config.FishSpot.x, p.z - Config.FishSpot.z).magnitude < 0.3f;
 
     Vector3 ReadInput()
     {
+        if (FishingStateMachine.Demo)
+        {
+            Vector3 go = Config.FishSpot - transform.position;
+            go.y = 0f;
+            return DemoArrived(transform.position) ? Vector3.zero : go.normalized;
+        }
         var key = new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical"));
         if (key.sqrMagnitude > 0.01f) return key.normalized;
         bool pressed = Input.touchCount > 0 || Input.GetMouseButton(0);

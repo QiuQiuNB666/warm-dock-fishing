@@ -9,7 +9,8 @@ from mathutils import Matrix, Vector
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC = ("rock", "boat", "cabin")
-ANIMS = ("idle", "walk")
+ANIMS = ("idle", "walk", "cast", "wait", "bite", "reel", "catch", "lose")   # blender/rig.py 产出
+LOOPS = ("idle", "walk", "wait", "reel")   # 只有循环动作要求首尾帧一致
 TEX_MAX = 1024
 
 
@@ -230,7 +231,8 @@ def clean_character(src, dst):
         tag = next((a for a in ANIMS if a in act.name.lower()), None)
         if tag and tag not in kept:
             act.name, act.use_fake_user = f"AN_{tag}", True
-            close_loop(act)
+            if tag in LOOPS:
+                close_loop(act)
             kept[tag] = act
         else:
             bpy.data.actions.remove(act)
@@ -269,13 +271,13 @@ def verify(dst):
         if pivot.length > 1e-3 * max(size, 1):
             return f"{n}: origin off bottom-center by {tuple(round(c, 4) for c in pivot)}"
     takes = {a.name.rsplit("|", 1)[-1] for a in bpy.data.actions}
-    if takes != {"AN_idle", "AN_walk"}:
+    if takes != {f"AN_{a}" for a in ANIMS}:
         return f"actions {sorted(a.name for a in bpy.data.actions)}"
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
     arm.animation_data_create()
     checked = 0
     for act in bpy.data.actions:
-        if not any(fc.data_path.startswith("pose.bones") for fc in act.fcurves):
+        if act.name.rsplit("|", 1)[-1][3:] not in LOOPS or not any(fc.data_path.startswith("pose.bones") for fc in act.fcurves):
             continue
         checked += 1
         arm.animation_data.action = act
@@ -289,7 +291,7 @@ def verify(dst):
         diff = max(abs(a[i][j] - b[i][j]) for a, b in zip(*poses) for i in range(4) for j in range(4))
         if diff > 1e-3:
             return f"{act.name}: first/last frame differ by {diff:.4f}"
-    return None if checked == 2 else f"loop check ran on {checked} actions"
+    return None if checked == len(LOOPS) else f"loop check ran on {checked} actions"
 
 
 def main():
@@ -304,7 +306,7 @@ def main():
         for n in STATIC:
             clean_static(src, dst, n)
         kept = clean_character(src, dst)
-        err = None if kept == list(ANIMS) else f"character actions found {kept}"
+        err = None if set(kept) == set(ANIMS) else f"character actions found {kept}"
         err = err or verify(dst)
     except Exception as e:
         err = f"{type(e).__name__}: {e}"

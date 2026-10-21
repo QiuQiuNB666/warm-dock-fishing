@@ -74,3 +74,15 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - 截图：`Warm.exe -shots <dir> -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`，ScreenCapture 在 Player 内截，不用 PowerShell 截屏。
 - Game.asmdef 加引用 Unity.RenderPipelines.Core.Runtime / Universal.Runtime（网页端关 Bloom 要用 Volume 类型）。
 
+## v3.2 动作（2026-10-21，anim）
+- blender/rig.py：21 骨（规格骨架 + hat + rod_mount），272 面人偶，8 段动作；姿势角度按骨架空间轴给（rest 四元数共轭），与骨骼 roll 无关。RIG PASS / CHECK-GLB PASS / CLEAN PASS。assets_raw/character.glb 入库；rock/boat/cabin 仍用 D:\tmp\warm_ph 占位 glb（clean 源目录 D:\tmp\warm_src）。
+- clean.py：ANIMS 扩到 8 段，只对 LOOPS（idle/walk/wait/reel）收尾帧并校验首尾一致。
+- 坑：ModelImporter 默认 avatarSetup=NoAvatar → 模型上没有 Animator，BuildScene 静默走了「无骨骼退路」（占位期一直如此）。WarmImport 改 CreateFromThisModel。
+- 走路防滑步：rig 走路 ±25° 三角波大腿摆，一循环 1.44 m / 20 帧 = 1.72 m/s（Config.WalkAnimSpeed）；PlayerSpeed 3.5→1.8；walk 状态 speedParameter=WalkScale=实际速度/1.72。
+- 朝向：BuildCharacter 用 AN_wait 第 0 帧比较 rod_mount 与 hips，挂点在玩家 -Z 侧就把模型转 180°；测试 CharacterClipsAndFacing 断言。
+- 影子圆片改成扁圆柱（原来是方 Quad），桌面运行时关掉（有实时软阴影），只给网页。
+- 测试：EditMode 19/19；桌面包 SCENE-READY ×1（94 MB）；网页包 10.4 MB WEB PASS（a6，加 -frames 之前的代码）。
+- 演示：-demo 22.3 s 钓上一条（DEMO-CAUGHT snapper）。录屏坑：gdigrab title= 拿到旧画面、desktop 被用户自己开的 Warm 窗口挡住 → 改游戏内 -frames 逐帧截图 + ffmpeg 合成；该版本（a7 作业）在额度收尾时仍在跑，结果未验证。
+- PowerShell 变量不分大小写：作业脚本里 $P（工程参数）被 $p = Start-Process 覆盖，导致 Unity 卡在无工程状态 → 改名 $Proj/$g。
+- 额度：周额度到 65% 收尾（起 51%）。
+

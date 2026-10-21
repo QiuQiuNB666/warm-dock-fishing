@@ -22,7 +22,9 @@ public static class Config
     // 沙滩可走范围
     public static readonly Rect Beach = new Rect(-25f, -18f, 50f, 18f);   // x, z, 宽, 深
     public static readonly Vector3 PlayerStart = new Vector3(0f, GroundY, -3f);
-    public const float PlayerSpeed = 3.5f;
+    public const float PlayerSpeed = 1.8f;
+    public const float WalkAnimSpeed = 1.72f;   // AN_walk 原速对应的移动速度（blender/rig.py：一个循环 1.44 m / 20 帧）
+    public const float RodSegment = 0.55f;      // 鱼竿三节，每节长度
 
     // 道具位置
     public static readonly Vector3 BoatPos = new Vector3(DockWidth * 0.5f + 2.5f, SeaY - 0.2f, 14f);   // 吃水 0.2 m
@@ -87,7 +89,7 @@ public static class Config
     public static readonly TimeKey[] Times =
     {
         new TimeKey(new Color(1.00f, 0.72f, 0.48f), 0.9f, 14f, -70f, new Color(0.42f, 0.48f, 0.60f), new Color(0.60f, 0.47f, 0.37f), new Color(0.30f, 0.25f, 0.22f), new Color(0.22f, 0.64f, 0.70f, 0.55f), 0f),
-        new TimeKey(new Color(1.00f, 0.95f, 0.86f), 0.85f, 62f, -25f, new Color(0.40f, 0.48f, 0.58f), new Color(0.46f, 0.46f, 0.42f), new Color(0.30f, 0.27f, 0.22f), new Color(0.15f, 0.68f, 0.70f, 0.55f), 0f),
+        new TimeKey(new Color(1.00f, 0.95f, 0.86f), 0.72f, 62f, -25f, new Color(0.40f, 0.48f, 0.58f), new Color(0.46f, 0.46f, 0.42f), new Color(0.30f, 0.27f, 0.22f), new Color(0.15f, 0.68f, 0.70f, 0.55f), 0f),
         new TimeKey(new Color(1.00f, 0.48f, 0.30f), 0.95f, 12f, 70f, new Color(0.52f, 0.44f, 0.62f), new Color(0.92f, 0.55f, 0.40f), new Color(0.35f, 0.25f, 0.25f), new Color(0.30f, 0.44f, 0.58f, 0.6f), 0.5f),
         new TimeKey(new Color(0.50f, 0.62f, 0.95f), 0.35f, 38f, 30f, new Color(0.10f, 0.14f, 0.28f), new Color(0.14f, 0.18f, 0.32f), new Color(0.06f, 0.06f, 0.10f), new Color(0.07f, 0.20f, 0.34f, 0.7f), 1f),
     };

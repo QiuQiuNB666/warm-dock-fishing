@@ -72,7 +72,7 @@ public static class BuildScene
         ladder.SetParent(dock, false);
         for (int i = 0; i < 4; i++) BuildNature.Box("Rung", ladder, Config.LadderPos + Vector3.up * (i * 0.3f - 0.2f), new Vector3(0.1f, 0.06f, 0.8f), woodDark);
 
-        // Tripo 模型（缺了就用方块占位，场景照样能搭）
+        // 模型（缺了就用方块占位，场景照样能搭）
         var boat = Model("SM_boat", root, Config.BoatPos, new Vector3(1.5f, 0.6f, 3.5f), wood);
         boat.AddComponent<Floater>();
         var cabin = Model("SM_cabin", root, Config.CabinPos, new Vector3(4f, 3f, 4f), woodDark);
@@ -80,42 +80,11 @@ public static class BuildScene
             Model("SM_rock", root, Config.RockPos[i], Vector3.one, BuildNature.Mat("M_cliff", Config.Cliff)).transform.localScale = Vector3.one * Config.RockScale[i];
 
         // 角色 + 钓具
-        var player = new GameObject("Player");
-        player.transform.position = Config.PlayerStart;
-        var cc = player.AddComponent<CharacterController>();
-        cc.center = Vector3.up * 0.9f; cc.height = 1.8f; cc.radius = 0.35f;
-        var body = Model("SK_character", player.transform, Config.PlayerStart, new Vector3(0.7f, 1.8f, 0.7f), wood);
-        var anim = body.GetComponent<Animator>();
-        foreach (var col in body.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(col);   // 别和 CharacterController 打架
-        if (anim != null) anim.runtimeAnimatorController = ProjectSetup.MakeAnimator();
-        var rod = Prim(PrimitiveType.Cylinder, "Rod", player.transform, Config.PlayerStart + new Vector3(0.35f, 1.1f, 0.3f), new Vector3(0.04f, 1.2f, 0.04f), woodDark).transform;
-        rod.localRotation = Quaternion.Euler(60f, 0f, 0f);
-        Object.DestroyImmediate(rod.GetComponent<Collider>());
-        var tip = new GameObject("RodTip").transform;
-        tip.SetParent(rod, false); tip.localPosition = Vector3.up;
-        var bobber = Prim(PrimitiveType.Sphere, "Bobber", root, Config.FishSpot + Vector3.forward * Config.CastDistance, Vector3.one * 0.18f, BuildNature.Mat("M_bobber", Config.Bobber));
-        Object.DestroyImmediate(bobber.GetComponent<Collider>());
-        var line = player.AddComponent<LineRenderer>();
-        line.widthMultiplier = 0.015f; line.positionCount = 2;
-        var shadow = new Material(Shader.Find("Warm/Water"));
-        shadow.SetColor("_Color", new Color(0f, 0f, 0f, 0.35f)); shadow.SetFloat("_WaveAmp", 0f); shadow.SetFloat("_Lift", 0f); shadow.SetFloat("_Spec", 0f);
-        AssetDatabase.CreateAsset(shadow, Art + "Materials/M_shadow.mat");
-        var disc = Prim(PrimitiveType.Quad, "ShadowDisc", player.transform, Config.PlayerStart + Vector3.up * 0.01f, Vector3.one * 0.9f, shadow);
-        disc.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        Object.DestroyImmediate(disc.GetComponent<Collider>());
-
-        var fishing = player.AddComponent<FishingStateMachine>();
-        fishing.rodTip = tip; fishing.bobber = bobber.AddComponent<Floater>(); fishing.line = line;
-        var pc = player.AddComponent<PlayerController>();
-        pc.animator = anim; pc.fishing = fishing;
-        var rig = player.AddComponent<CharacterRig>();
-        rig.fishing = fishing; rig.player = pc; rig.rod = rod;
-        rig.rightArm = body.GetComponentsInChildren<Transform>().FirstOrDefault(t => { var n = t.name.ToLower(); return n.Contains("arm") && !n.Contains("fore") && (n.Contains("right") || n.EndsWith("_r") || n.EndsWith(".r")); });
-        if (anim == null) rig.body = body.transform;   // 绑骨失败退路：纯程序动画
+        var fishing = BuildCharacter.Build(root, wood, woodDark);
 
         var cam = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)) { tag = "MainCamera" };
         cam.GetComponent<Camera>().fieldOfView = Config.CamFov;
-        cam.AddComponent<TopDownCamera>().target = player.transform;
+        cam.AddComponent<TopDownCamera>().target = fishing.transform;
         TopDownCamera.Place(cam.transform, Config.DockMid);
 
         var game = new GameObject("Game");
@@ -132,14 +101,14 @@ public static class BuildScene
         Debug.Log("BUILD-SCENE OK");
     }
 
-    static GameObject Prim(PrimitiveType t, string name, Transform parent, Vector3 pos, Vector3 scale, Material m)
+    public static GameObject Prim(PrimitiveType t, string name, Transform parent, Vector3 pos, Vector3 scale, Material m)
     {
         var g = GameObject.CreatePrimitive(t); g.name = name; g.transform.SetParent(parent, false);
         g.transform.position = pos; g.transform.localScale = scale; g.GetComponent<Renderer>().sharedMaterial = m;
         return g;
     }
 
-    static GameObject Model(string name, Transform parent, Vector3 pos, Vector3 fallbackSize, Material fallback)
+    public static GameObject Model(string name, Transform parent, Vector3 pos, Vector3 fallbackSize, Material fallback)
     {
         var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(Art + name + ".fbx");
         if (fbx == null) return BuildNature.Box(name, parent, pos + Vector3.up * fallbackSize.y * 0.5f, fallbackSize, fallback);
