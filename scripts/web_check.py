@@ -1,13 +1,32 @@
 #!/usr/bin/env python3
 """Phase 5 test: web_check.py [web_dir=unity/Build/Web] [seconds=60]. Serves the WebGL build with http.server,
-opens it in headless Edge, then asserts SCENE-READY logged exactly once, 0 console errors, Build/ <= 60MB.
+opens it in headless Edge (index.html is served with a hook tagging console.error / uncaught errors, because
+Edge logs every page console level as INFO; the build on disk is untouched), then asserts SCENE-READY logged exactly once, 0 console errors, Build/ <= 60MB.
 Prints one line WEB PASS / WEB FAIL: <first reason>."""
-import os, re, shutil, subprocess, sys, time
+import functools, http.server, os, re, shutil, subprocess, sys, threading, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 PROFILE, LOG = r"D:\tmp\edge", r"D:\tmp\edge.log"
 PORT, LIMIT_MB = 8765, 60
+HOOK = (b"<script>(e=>{console.error=function(...a){e.apply(console,['WEBCHECK-ERROR',...a])};"
+        b"addEventListener('error',x=>console.log('WEBCHECK-ERROR',x.message));"
+        b"addEventListener('unhandledrejection',x=>console.log('WEBCHECK-ERROR',String(x.reason)))})(console.error)</script>")
+
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        if self.path.split("?")[0] not in ("/", "/index.html"):
+            return super().do_GET()
+        body = open(os.path.join(self.directory, "index.html"), "rb").read().replace(b"<head>", b"<head>" + HOOK, 1)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
 def kill(p):
@@ -22,10 +41,9 @@ def check(web, secs):
     if mb > LIMIT_MB:
         return f"Build/ {mb:.1f}MB > {LIMIT_MB}MB"
     shutil.rmtree(PROFILE, ignore_errors=True)
-    server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "--bind", "127.0.0.1"], cwd=web,
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), functools.partial(Handler, directory=web))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
-        time.sleep(1)
         with open(LOG, "w", encoding="utf-8") as log:
             edge = subprocess.Popen([EDGE, "--headless=new", f"--user-data-dir={PROFILE}", "--enable-logging=stderr", "--v=1",
                                      "--enable-unsafe-swiftshader", "--no-first-run", f"http://127.0.0.1:{PORT}/index.html"],
@@ -33,10 +51,10 @@ def check(web, secs):
             time.sleep(secs)
             kill(edge)
     finally:
-        kill(server)
+        server.shutdown()
     console = [l for l in open(LOG, encoding="utf-8", errors="replace") if re.search(r":CONSOLE[:(]", l)]
     ready = sum("SCENE-READY" in l for l in console)
-    errors = [l.strip() for l in console if ":ERROR:CONSOLE" in l]
+    errors = [l.strip() for l in console if "WEBCHECK-ERROR" in l]
     if ready != 1:
         return f"SCENE-READY x{ready} ({len(console)} console lines)"
     if errors:
