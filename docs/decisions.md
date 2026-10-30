@@ -86,3 +86,10 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - PowerShell 变量不分大小写：作业脚本里 $P（工程参数）被 $p = Start-Process 覆盖，导致 Unity 卡在无工程状态 → 改名 $Proj/$g。
 - 额度：周额度到 65% 收尾（起 51%）。
 
+
+## 双人合作子阶段（2026-10-30，用户逐阶段下达）
+- 运行方式：用户说的「Unity 官方 Claude Code 插件」本机没装（目录里有，但只有技能文档、不连编辑器）。沿用老路子：iMac 改代码 → Windows batchmode 搭场景/跑测试/打包 → 游戏内 `-shots` 或 PowerShell 发键截图（每次发键前校验前台窗口是游戏）。提交在 Windows 上做（新脚本的 .meta 和场景由 Unity 在那边生成），再用 bundle 拉回 iMac 推 GitHub。
+- stage-0：`CabinPos + (1.2, 0, 0.8)` 落在占位小屋网格里（小屋约 x∈[-9.6,-6.4]、z∈[-4.9,-2.1]），按规格沿沙滩 +x 平移 1.6 m；测试断言床和两人都不在小屋包围盒里。床摆在两人身后（`BedFromSpawn`）。单人模式 PlayerManager 除了关 Player2 整棵，也关它挂在 World 下的 Bobber2/HookedFish2/Splash2。GameBootstrap 桌面端也关 ShadowDisc2。M_shadow/M_splash 改成已存在就加载复用。
+- stage-1：P2 的 BaitSelector 挂在 Player2 身上（单人模式随它一起关）；P1 的仍在 Game 上。按键状态走 `InputManager2P.Held/Pressed`，测试传自己的函数。
+- stage-2：`BedPos` 改为属性——它引用另一个 partial 文件里的 `CabinPos`，跨文件的静态字段初始化顺序不保证。双人相关测试挪到 CoopTests.cs（SystemsTests 超了 150 行），SystemsTests 的钓鱼用例一字未动。`CamFrameMargin = 0.75`。
+- stage-3：PlayerPrefs 在 Windows 存于 `HKCU\Software\Warm\Warm`，值名 `pier.save.v1_h928868525`（djb2-xor 哈希）。坏档：解析失败或 version≠1 → 删键、打一行 `SAVE-DISCARDED`、照常开局。

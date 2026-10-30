@@ -104,6 +104,7 @@ public static class BuildScene
         var bait2 = fishing2.gameObject.AddComponent<BaitSelector>();
         bait2.fishing = fishing2; bait2.owner = 1;
         game.AddComponent<PlayerManager>();
+        game.AddComponent<PierSave>();   // 开局读档（没档/坏档新开），两人站到床边
 
         BuildNature.Build(root, water);
         System.IO.Directory.CreateDirectory("Assets/Scenes");

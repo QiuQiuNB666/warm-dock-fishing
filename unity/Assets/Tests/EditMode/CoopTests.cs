@@ -35,4 +35,61 @@ public class CoopTests
         Assert.That(TopDownCamera.ZoomFor(a, a + Vector3.forward * 11f, aspect), Is.GreaterThan(1f).And.LessThan(Config.CamMaxZoomOut));
         Assert.AreEqual(Config.CamMaxZoomOut, TopDownCamera.ZoomFor(Config.CabinPos, Config.FishSpot, aspect), 1e-5f);
     }
+
+    // 子阶段 3：存档往返。内存里的 JSON 走一遍（1 人、2 人各一次），再用真实键走一次 PlayerPrefs 并删掉。
+    static Stock Sample()
+    {
+        var s = new Stock { brick = 12, wood = 3, stone = 999 };
+        s.Set(ItemType.RawFish, 5, 0); s.Set(ItemType.CookedFish, 2, 1); s.Set(ItemType.Cloth, 64, 1);
+        s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 0 });
+        s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 1 });
+        return s;
+    }
+
+    [TestCase(1)]
+    [TestCase(2)]
+    public void SaveRoundTrip(int players)
+    {
+        Stock s = Sample();
+        float t = 0.6180339f;
+        Vector3 bed = Config.BedPos + Vector3.right;
+        var d = PierSave.Parse(PierSave.ToJson(PierSave.Capture(t, bed, s, players)));
+        Assert.IsNotNull(d);
+        Assert.AreEqual(1, d.version);
+        Assert.AreEqual(players, d.players.Length);
+        Stock r = PierSave.Restore(d, out float t2, out Vector3 bed2);
+        Assert.AreEqual(t, t2, 1e-4f);
+        Assert.That(Vector3.Distance(bed, bed2), Is.LessThan(1e-4f));
+        Assert.AreEqual(new[] { 12, 3, 999 }, new[] { r.brick, r.wood, r.stone });
+        foreach (var item in new[] { ItemType.RawFish, ItemType.CookedFish, ItemType.Cloth })
+            for (int i = 0; i < players; i++) Assert.AreEqual(s.Count(item, i), r.Count(item, i), $"{item} p{i}");
+        Assert.AreEqual(2, r.bricks.Count);
+        Assert.AreEqual(1, r.bricks[1].layer);
+        Assert.IsFalse(r.dirty);
+    }
+
+    [Test] public void CorruptSaveIsDiscarded()
+    {
+        foreach (var bad in new[] { "", "{not json", "{\"version\":2}", "null" }) Assert.IsNull(PierSave.Parse(bad), bad);
+    }
+
+    [Test] public void PlayerPrefsRoundTripThenDelete()
+    {
+        string old = PlayerPrefs.HasKey(PierSave.Key) ? PlayerPrefs.GetString(PierSave.Key) : null;
+        try
+        {
+            PierSave.Write(PierSave.Capture(0.25f, Config.BedPos, Sample(), 2));
+            var d = PierSave.Read();
+            Assert.IsNotNull(d);
+            Assert.AreEqual(0.25f, d.timeOfDay, 1e-4f);
+            PlayerPrefs.SetString(PierSave.Key, "{broken");
+            Assert.IsNull(PierSave.Read());
+            Assert.IsFalse(PlayerPrefs.HasKey(PierSave.Key), "坏档应被删掉");
+        }
+        finally
+        {
+            if (old != null) PlayerPrefs.SetString(PierSave.Key, old); else PlayerPrefs.DeleteKey(PierSave.Key);
+            PlayerPrefs.Save();
+        }
+    }
 }
