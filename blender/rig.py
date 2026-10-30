@@ -1,5 +1,5 @@
 """$BLENDER -b -P blender/rig.py -- [--dst assets_raw]
-正式骨架 + 简模人偶（胶囊身体 + 大草帽）+ 8 段关键帧动作（原地、烘焙）→ <dst>/character.glb。
+正式骨架 + 低模渔人（大草帽、卷袖、裤脚翻边、靴头，每块刚性绑一根骨）+ 8 段关键帧动作（原地、烘焙）→ <dst>/character.glb。
 骨架以后正式模型沿用：hips/spine/chest/neck/head(+hat)，左右 shoulder/upperarm/forearm/hand，左右 thigh/shin/foot，rod_mount 挂在 hand.R。
 角色面朝 -Y（Blender 正视）；姿势角度一律按「骨架空间轴」给，与骨骼自身朝向无关：
   绕 X 正角 = 朝上的骨头前倾 / 朝下的骨头后摆；绕 Z 正角 = 向角色左侧扭；绕 Y 正角 = 朝下的骨头摆向 -X（角色右侧）。"""
@@ -97,26 +97,84 @@ def limb(a, b, r, bone, mat, verts=8):
     return o
 
 
+def frustum(a, b, r1, r2, bone, mat, verts=8, sy=1.0):
+    """a 端半径 r1、b 端半径 r2 的棱台；sy 把截面在身体前后方向压扁（躯干）。"""
+    a, b = Vector(a), Vector(b)
+    d = b - a
+    o = part(bpy.ops.mesh.primitive_cone_add, bone, mat, vertices=verts, radius1=r1, radius2=r2, depth=d.length,
+             location=(a + b) / 2, scale=(1, sy, 1))
+    o.rotation_mode = "QUATERNION"
+    o.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(d.normalized())
+    return o
+
+
+def block(lo, hi, bone, mat):
+    lo, hi = Vector(lo), Vector(hi)
+    return part(bpy.ops.mesh.primitive_cube_add, bone, mat, size=1, location=(lo + hi) / 2, scale=hi - lo)
+
+
+def rings(profile, seg_mats, bone, n, cap=None):
+    """绕 Z 的回转体：profile = [(z, r)…] 依次连成环带，第 i 段用 seg_mats[i]（换色 = 换材质，不用贴图）；cap 给材质就封顶。"""
+    v = [(r * math.cos(2 * math.pi * i / n), r * math.sin(2 * math.pi * i / n), z) for z, r in profile for i in range(n)]
+    f = [(k * n + i, k * n + (i + 1) % n, (k + 1) * n + (i + 1) % n, (k + 1) * n + i) for k in range(len(seg_mats)) for i in range(n)]
+    fm = [m for m in seg_mats for _ in range(n)]
+    if cap:
+        f.append(tuple(range(len(v) - n, len(v))))
+        fm.append(cap)
+    me = bpy.data.meshes.new("part")
+    me.from_pydata(v, [], f)
+    o = bpy.data.objects.new("part", me)
+    bpy.context.scene.collection.objects.link(o)
+    names = list(dict.fromkeys(fm))
+    for name in names:
+        me.materials.append(mats[name])
+    for poly, name in zip(me.polygons, fm):
+        poly.material_index = names.index(name)
+    o.vertex_groups.new(name=bone).add(list(range(len(v))), 1.0, "REPLACE")
+    return o
+
+
+def brim_z(r):   # 帽檐顶面：往外缘微微下垂 2.8 cm
+    return 1.757 - 0.028 * (r - 0.155) / 0.285
+
+
+# 帽檐截面：内圈底 → 外缘底 → 外缘顶 → 往里一圈深色 → 内圈顶（一条连续轮廓，法线自然朝外）
+BRIM = [(brim_z(.155) - .022, .155), (brim_z(.44) - .022, .44), (brim_z(.44), .44), (brim_z(.325), .325), (brim_z(.30), .30), (brim_z(.155), .155)]
+CROWN = [(1.78, .148), (1.815, .136), (1.835, .128), (1.87, .112), (1.885, .104), (1.905, .09)]   # 帽顶：两圈深色
+
+
 def build_body(arm):
     parts = [
-        limb((0, 0, 0.84), (0, 0, 1.02), 0.16, "hips", "pants"),
-        limb((0, 0, 1.0), (0, 0, 1.24), 0.165, "spine", "shirt"),
-        limb((0, 0, 1.22), (0, 0, 1.46), 0.18, "chest", "shirt"),
-        limb((0, 0, 1.44), (0, 0, 1.54), 0.05, "neck", "skin", 6),
-        part(bpy.ops.mesh.primitive_uv_sphere_add, "head", "skin", segments=8, ring_count=6, radius=0.12, location=(0, 0, 1.63)),
-        limb((0, 0, 1.73), (0, 0, 1.755), 0.44, "hat", "straw", 12),          # 大帽檐：俯拍主要看见它
-        limb((0, 0, 1.75), (0, 0, 1.78), 0.155, "hat", "band", 10),
-        part(bpy.ops.mesh.primitive_cone_add, "hat", "straw", vertices=10, radius1=0.15, radius2=0.07, depth=0.13, location=(0, 0, 1.84)),
+        frustum((0, 0, 0.84), (0, 0, 1.0), 0.15, 0.162, "hips", "pants", sy=0.8),
+        frustum((0, 0, 0.985), (0, 0, 1.035), 0.169, 0.169, "hips", "boots", sy=0.8),          # 腰带
+        frustum((0, 0, 1.0), (0, 0, 1.24), 0.16, 0.172, "spine", "shirt", sy=0.78),
+        frustum((0, 0, 1.22), (0, 0, 1.44), 0.176, 0.19, "chest", "shirt", sy=0.76),
+        frustum((0, 0, 1.44), (0, 0, 1.49), 0.19, 0.095, "chest", "shirt", sy=0.76),           # 斜肩
+        limb((0, 0, 1.46), (0, 0, 1.54), 0.05, "neck", "skin", 6),
+        part(bpy.ops.mesh.primitive_uv_sphere_add, "head", "skin", segments=8, ring_count=6, radius=0.12,
+             location=(0, 0, 1.63), scale=(0.95, 1, 1.06)),
+        block((-0.068, -0.118, 1.626), (-0.032, -0.09, 1.656), "head", "pants"),              # 两个深色点当眼睛（脸朝 -Y）
+        block((0.032, -0.118, 1.626), (0.068, -0.09, 1.656), "head", "pants"),
+        part(bpy.ops.mesh.primitive_cone_add, "head", "skin", vertices=4, radius1=0.024, radius2=0, depth=0.04,
+             location=(0, -0.13, 1.6), rotation=(math.pi / 2, 0, 0)),                        # 小鼻子
+        rings(BRIM, ["straw", "straw", "straw", "boots", "straw"], "hat", 16),                  # 大帽檐：俯拍主要看见它
+        limb((0, 0, 1.75), (0, 0, 1.78), 0.155, "hat", "band", 10),                            # 帽带（P2 在 Unity 里盖一圈绿的）
+        rings(CROWN, ["straw", "boots", "straw", "boots", "straw"], "hat", 12, cap="straw"),
     ]
     for s, x in (("L", 1), ("R", -1)):
         parts += [
-            limb((0.06 * x, 0, 1.40), (0.18 * x, 0, 1.40), 0.07, f"shoulder.{s}", "shirt", 6),
-            limb((0.18 * x, 0, 1.40), (0.20 * x, 0, 1.13), 0.06, f"upperarm.{s}", "shirt", 6),
-            limb((0.20 * x, 0, 1.13), (0.21 * x, 0, 0.90), 0.05, f"forearm.{s}", "shirt", 6),
-            part(bpy.ops.mesh.primitive_uv_sphere_add, f"hand.{s}", "skin", segments=6, ring_count=4, radius=0.055, location=(0.21 * x, 0, 0.85)),
-            limb((0.10 * x, 0, 0.95), (0.10 * x, 0, 0.52), 0.08, f"thigh.{s}", "pants"),
-            limb((0.10 * x, 0, 0.52), (0.10 * x, 0, 0.12), 0.065, f"shin.{s}", "pants"),
-            part(bpy.ops.mesh.primitive_cube_add, f"foot.{s}", "boots", size=1, location=(0.10 * x, -0.05, 0.05), scale=(0.11, 0.24, 0.1)),
+            limb((0.06 * x, 0, 1.40), (0.18 * x, 0, 1.40), 0.072, f"shoulder.{s}", "shirt", 6),
+            frustum((0.18 * x, 0, 1.40), (0.20 * x, 0, 1.13), 0.066, 0.058, f"upperarm.{s}", "shirt"),
+            frustum((0.20 * x, 0, 1.14), (0.203 * x, 0, 1.075), 0.068, 0.066, f"forearm.{s}", "shirt"),     # 卷起的袖口
+            frustum((0.203 * x, 0, 1.08), (0.21 * x, 0, 0.90), 0.045, 0.036, f"forearm.{s}", "skin", 6),    # 小臂露出来
+            block((0.21 * x - 0.024, -0.042, 0.79), (0.21 * x + 0.024, 0.042, 0.895), f"hand.{s}", "skin"),  # 连指手掌
+            block((0.21 * x - 0.016, -0.07, 0.83), (0.21 * x + 0.016, -0.038, 0.88), f"hand.{s}", "skin"),   # 拇指
+            frustum((0.10 * x, 0, 0.97), (0.10 * x, 0, 0.52), 0.085, 0.07, f"thigh.{s}", "pants"),
+            frustum((0.10 * x, 0, 0.53), (0.10 * x, 0, 0.27), 0.068, 0.064, f"shin.{s}", "pants"),
+            frustum((0.10 * x, 0, 0.30), (0.10 * x, 0, 0.245), 0.079, 0.079, f"shin.{s}", "pants"),         # 裤脚翻边
+            frustum((0.10 * x, 0, 0.255), (0.10 * x, 0, 0.10), 0.06, 0.066, f"shin.{s}", "boots"),          # 靴筒
+            block((0.10 * x - 0.056, -0.12, 0.0), (0.10 * x + 0.056, 0.07, 0.11), f"foot.{s}", "boots"),
+            block((0.10 * x - 0.058, -0.205, 0.0), (0.10 * x + 0.058, -0.115, 0.075), f"foot.{s}", "boots"),  # 靴头往前错出一截
         ]
     bpy.ops.object.select_all(action="DESELECT")
     for p in parts:
