@@ -69,6 +69,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
 双人合作子阶段新增（用户逐阶段下达）：
   stage-0  unity/Assets/Scripts/: ConfigCoop.cs Gender.cs ItemType.cs PlayerContext.cs PlayerManager.cs
   stage-1  unity/Assets/Scripts/: KeyMap.cs InputManager2P.cs
+  stage-2  unity/Assets/Tests/EditMode/CoopTests.cs（双人相关的纯逻辑测试，SystemsTests 保持只测钓鱼/时段）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

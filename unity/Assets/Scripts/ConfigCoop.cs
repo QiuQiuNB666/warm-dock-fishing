@@ -8,14 +8,18 @@ public static partial class Config
     public const Gender GenderDefault = Gender.Male, GenderP1 = Gender.Male, GenderP2 = Gender.Female;   // 只是数据，不改体型
 
     public const float CamMaxZoomOut = 1.2f;   // 相机距离 = CamDistance × zoom，zoom ∈ [1, CamMaxZoomOut]
+    public const float CamFrameMargin = 0.75f;   // 双人时两人都要落在画面半宽/半高的 75% 以内，否则拉远
 
     // 床：小屋门前的沙滩上，两人出生在床边。CabinPos + (1.2, 0, 0.8) 落在小屋网格里，沿沙滩 +x 平移 1.6 m 出来。
-    public static readonly Vector3 BedPos = CabinPos + new Vector3(1.2f + 1.6f, 0f, 0.8f);
+    // 用属性现算：CabinPos 在另一个 partial 文件里，跨文件的静态字段初始化顺序不保证。
+    public static Vector3 BedPos => CabinPos + new Vector3(1.2f + 1.6f, 0f, 0.8f);
     public static readonly Vector3 P2BedOffset = new Vector3(0.7f, 0f, 0f);
     public static readonly Vector3 BedFromSpawn = new Vector3(0.35f, 0f, 0.95f);   // 床摆在两人身后（离相机更远的一侧）
     public static readonly Vector3 BedSize = new Vector3(2f, 0.3f, 1f);
     public static readonly Color Bedding = new Color(0.95f, 0.93f, 0.86f);
     public static readonly Color HatBandP2 = new Color32(0x7F, 0xA8, 0x98, 0xFF);
+    public static readonly Color HatStraw = new Color(0.89f, 0.76f, 0.48f);   // blender/rig.py 的草帽色
+    public static readonly Color[] HatDot = { HatStraw, HatBandP2 };   // 屏外指示点：P1 草帽色，P2 帽带色
 
     // 键位：只做常量，本阶段不接线。下标 0 = P1，1 = P2。
     public static readonly KeyCode[][] MoveKeys =   // 上、下、左、右

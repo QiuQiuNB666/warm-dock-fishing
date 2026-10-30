@@ -91,7 +91,8 @@ public static class BuildScene
 
         var cam = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)) { tag = "MainCamera" };
         cam.GetComponent<Camera>().fieldOfView = Config.CamFov;
-        cam.AddComponent<TopDownCamera>().target = fishing.transform;
+        var follow = cam.AddComponent<TopDownCamera>();
+        follow.target = fishing.transform; follow.target2 = GameObject.Find("Player2").transform;   // 双人：看两人中点、按间距拉远
         TopDownCamera.Place(cam.transform, Config.DockMid);
 
         var game = new GameObject("Game");
