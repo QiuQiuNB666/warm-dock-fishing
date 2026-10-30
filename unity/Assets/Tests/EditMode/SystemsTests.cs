@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -109,6 +110,27 @@ public class SystemsTests
         Assert.AreEqual(0.25f, TimeOfDay.NextPhase(0f), 1e-4f);
         Assert.AreEqual(0.5f, TimeOfDay.NextPhase(0.3f), 1e-4f);
         Assert.AreEqual(0f, TimeOfDay.NextPhase(0.8f), 1e-4f);
+    }
+
+    // 子阶段 1：只断言键表（不调 Input.GetKey）。两人的键没有交集，T/F3 是全局键、不在任何一人的表里。
+    [Test] public void KeyTablesDisjoint()
+    {
+        KeyCode[] p1 = KeyMap.Players[0].All(), p2 = KeyMap.Players[1].All();
+        CollectionAssert.IsEmpty(p1.Intersect(p2).Except(KeyMap.Global));
+        foreach (var g in KeyMap.Global) { CollectionAssert.DoesNotContain(p1, g); CollectionAssert.DoesNotContain(p2, g); }
+    }
+
+    [Test] public void SinglePlayerP2DoesNotMove()
+    {
+        int keep = Config.PlayerCount;
+        try
+        {
+            Config.PlayerCount = 1;
+            Assert.AreEqual(Vector3.zero, InputManager2P.Move(1, k => true));
+            Config.PlayerCount = 2;
+            Assert.AreEqual(1f, InputManager2P.Move(1, k => k == KeyCode.UpArrow || k == KeyCode.RightArrow).magnitude, 1e-5f);   // 对角线归一化
+        }
+        finally { Config.PlayerCount = keep; }
     }
 
     [Test] public void WalkableOnlyDockAndBeach()

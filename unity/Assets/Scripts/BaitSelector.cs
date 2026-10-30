@@ -1,16 +1,18 @@
 using UnityEngine;
 
+// 选饵：P1 用 1/2/3（挂在 Game 上），P2 用小键盘 7/8/9（挂在 Player2 上，单人模式随它一起关掉）；各改各的 FishingLogic。
 public class BaitSelector : MonoBehaviour
 {
     public FishingStateMachine fishing;
+    public int owner;   // 第几名玩家
     public int Index { get; private set; }
 
     void Start() { Select(0); }
 
     void Update()
     {
-        for (int i = 0; i < Config.Baits.Length; i++)
-            if (Input.GetKeyDown(KeyCode.Alpha1 + i)) Select(i);
+        int i = InputManager2P.BaitDown(owner);
+        if (i >= 0) Select(i);
     }
 
     public void Select(int i)
@@ -21,13 +23,16 @@ public class BaitSelector : MonoBehaviour
         fishing.Logic.Weights = Config.Baits[Index].Weights;
     }
 
+    static string KeyName(KeyCode k) => k.ToString().Replace("Alpha", "").Replace("Keypad", "Num");
+
     void OnGUI()
     {
-        float y = Screen.height - 40;
+        var keys = KeyMap.Players[owner].Bait;
+        float y = Screen.height - 40, x0 = owner == 0 ? 10f : Screen.width - 10f - Config.Baits.Length * 110f;   // P1 左下，P2 右下
         for (int i = 0; i < Config.Baits.Length; i++)
         {
-            string label = (i == Index ? "> " : "") + $"{i + 1} {Config.Baits[i].Name}";
-            if (GUI.Button(new Rect(10 + i * 110, y, 100, 30), label)) Select(i);
+            string label = (i == Index ? "> " : "") + $"{KeyName(keys[i])} {Config.Baits[i].Name}";
+            if (GUI.Button(new Rect(x0 + i * 110, y, 100, 30), label)) Select(i);
         }
     }
 }

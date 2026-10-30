@@ -99,6 +99,9 @@ public static class BuildScene
         var tod = game.AddComponent<TimeOfDay>(); tod.sun = sun; tod.water = water;
         BuildFx.Build(root, cabin, tod, cam.GetComponent<Camera>());
         game.AddComponent<BaitSelector>().fishing = fishing;
+        var fishing2 = GameObject.Find("Player2").GetComponent<FishingStateMachine>();   // P2 的饵挂在 Player2 身上：单人模式随它一起关掉
+        var bait2 = fishing2.gameObject.AddComponent<BaitSelector>();
+        bait2.fishing = fishing2; bait2.owner = 1;
         game.AddComponent<PlayerManager>();
 
         BuildNature.Build(root, water);

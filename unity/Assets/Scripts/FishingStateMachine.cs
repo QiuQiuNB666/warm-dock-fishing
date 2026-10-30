@@ -76,21 +76,30 @@ public class FishingLogic
 public class FishingStateMachine : MonoBehaviour
 {
     public static readonly bool Demo = GameBootstrap.Arg("-demo") != null;
+    public static bool DemoDrives(Component c) => Demo && c.name == "Player";   // 演示只驱动名为 Player 的那一个
     public FishingLogic Logic { get; private set; }
     public bool Busy => Logic.State != FishState.Idle;
+    int owner;   // 第几名玩家：P1 Space，P2 Keypad5
     float atSpot;
     int logged;
 
-    void Awake() { Logic = new FishingLogic(Demo ? 7 : System.Environment.TickCount); }
+    void Awake()
+    {
+        var ctx = GetComponent<PlayerContext>();
+        owner = ctx != null ? ctx.playerIndex : 0;
+        Logic = new FishingLogic((Demo ? 7 : System.Environment.TickCount) + owner * 10007);
+    }
 
     void Update()
     {
-        bool down = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
-        bool hold = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
-        if (Demo) DemoInput(out down, out hold);
+        bool pointer = InputManager2P.PointerAllowed && owner == 0;   // 双人时鼠标不抛竿
+        bool down = InputManager2P.FishDown(owner) || (pointer && Input.GetMouseButtonDown(0));
+        bool hold = InputManager2P.FishHeld(owner) || (pointer && Input.GetMouseButton(0));
+        bool demo = DemoDrives(this);
+        if (demo) DemoInput(out down, out hold);
         if (down && (Busy || Config.InFishSpot(transform.position))) Logic.Press();
         Logic.Tick(Time.deltaTime, hold);
-        if (Demo && Logic.CaughtCount > logged) { logged = Logic.CaughtCount; Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}"); }
+        if (demo && Logic.CaughtCount > logged) { logged = Logic.CaughtCount; Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}"); }
     }
 
     // 演示：走到码头尽头站稳 1 s 后抛竿，咬钩 0.4 s 后提竿，收线时张力 <0.7 才拉；钓上一条就停。
@@ -106,10 +115,11 @@ public class FishingStateMachine : MonoBehaviour
 
     void OnGUI()
     {
-        GUI.Label(new Rect(10, 10, 300, 22), $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}");
+        float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
+        GUI.Label(new Rect(x, 10, 300, 22), $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}");
         if (Logic.State != FishState.Reel) return;
-        GUI.Box(new Rect(10, 36, 200, 14), GUIContent.none);
-        GUI.Box(new Rect(10, 36, 200 * Mathf.Clamp01(Logic.Tension), 14), "tension");
-        GUI.Box(new Rect(10, 54, 200 * Mathf.Clamp01(Logic.Progress), 14), "reel");
+        GUI.Box(new Rect(bx, 36, 200, 14), GUIContent.none);
+        GUI.Box(new Rect(bx, 36, 200 * Mathf.Clamp01(Logic.Tension), 14), "tension");
+        GUI.Box(new Rect(bx, 54, 200 * Mathf.Clamp01(Logic.Progress), 14), "reel");
     }
 }
