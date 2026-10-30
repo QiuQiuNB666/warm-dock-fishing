@@ -107,10 +107,22 @@ public class CoopTests
             Assert.IsNull(PierSave.Read());
             Assert.IsFalse(PlayerPrefs.HasKey(PierSave.Key), "坏档应被删掉");
         }
-        finally
-        {
-            if (old != null) PlayerPrefs.SetString(PierSave.Key, old); else PlayerPrefs.DeleteKey(PierSave.Key);
-            PlayerPrefs.Save();
-        }
+        finally { PutBack(old); }
+    }
+
+    static void PutBack(string old)   // 测试前存档原样放回（没有就删掉）
+    {
+        if (old != null) PlayerPrefs.SetString(PierSave.Key, old); else PlayerPrefs.DeleteKey(PierSave.Key);
+        PlayerPrefs.Save();
+    }
+
+    // play-1：钓上一条，该玩家生鱼 +1、另一人不变（记账在 FishingStateMachine.Credit，FishingLogic 不碰 Stock）
+    [Test] public void CatchCreditsOwnerOnly()
+    {
+        var f = new FishingLogic(3); var s = new Stock();
+        f.Press();
+        for (int i = 0; i < 9000 && f.State != FishState.Caught; i++) { if (f.State == FishState.Bite) f.Press(); f.Tick(0.02f, i % 10 < 4); }
+        Assert.AreEqual(1, FishingStateMachine.Credit(s, 1, 0, f.CaughtCount));
+        Assert.AreEqual(new[] { 0, 1 }, new[] { s.Count(ItemType.RawFish, 0), s.Count(ItemType.RawFish, 1) });
     }
 }

@@ -8,6 +8,7 @@ public static class BuildScene
 {
     public const string ScenePath = "Assets/Scenes/Main.unity";
     const string Art = "Assets/Art/";
+    public const string CjkFont = "Assets/Fonts/WarmCJK-Regular.otf";   // 思源黑体子集（WarmCJK）：中文 OnGUI 文本都用这一份
 
     public static void Build()
     {
@@ -105,7 +106,7 @@ public static class BuildScene
         bait2.fishing = fishing2; bait2.owner = 1;
         game.AddComponent<PlayerManager>();
         game.AddComponent<PierSave>();   // 开局读档（没档/坏档新开），两人站到床边
-        var cjk = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/WarmCJK-Regular.otf");   // 思源黑体子集：只给暂停菜单和「放下一砖」
+        var cjk = AssetDatabase.LoadAssetAtPath<Font>(CjkFont);   // 暂停菜单、底部提示
         var bricks = game.AddComponent<Bricks>(); bricks.material = BuildNature.Mat("M_brick", Config.BrickColor); bricks.font = cjk;   // 测试砖
         game.AddComponent<Pause>().font = cjk;
 

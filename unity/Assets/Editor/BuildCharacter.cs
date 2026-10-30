@@ -77,7 +77,7 @@ public static class BuildCharacter
         var disc = BuildScene.Prim(PrimitiveType.Cylinder, "ShadowDisc" + sfx, player.transform, pos + Vector3.up * 0.01f, new Vector3(0.9f, 0.002f, 0.9f), shadow);   // 网页端的圆片影子（桌面运行时关掉）
         Object.DestroyImmediate(disc.GetComponent<Collider>());
 
-        var fishing = player.AddComponent<FishingStateMachine>();
+        var fishing = player.AddComponent<FishingStateMachine>(); fishing.font = AssetDatabase.LoadAssetAtPath<Font>(BuildScene.CjkFont);   // 「生鱼 n」用 WarmCJK
         var pc = player.AddComponent<PlayerController>();
         pc.animator = anim; pc.fishing = fishing;
         var rig = player.AddComponent<CharacterRig>();

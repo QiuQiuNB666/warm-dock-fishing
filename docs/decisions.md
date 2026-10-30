@@ -107,3 +107,7 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - 网页中文：实测 Unity 网页端 OnGUI 中文完全不显示（按钮和提示框是空的，没有系统字体可以回退）。加了 `Assets/Fonts/WarmCJK-Regular.otf`：思源黑体 CN 子集，只含暂停菜单和底部提示用到的字，另含 stash 里鱼换砖两句的 7 个字，8.6 KB。只赋给 Pause 和 Bricks 的 GUIStyle。OFL 给 "Source" 保留了字体名，子集算改动版，所以内部名字改成 WarmCJK，原许可证放在 WarmCJK-OFL.txt。
 - 工具坑：Windows 系统环境变量 OCIO 指向 Blender 5.2 的配置，Blender 4.5 读不了会报错，不影响导出，渲预览时去掉这个变量。网页端实测发键必须带真实扫描码（`MapVirtualKey`）：浏览器的 `KeyboardEvent.code` 由扫描码算出，keybd_event 扫描码填 0 时 Unity 网页端收不到键；桌面包读虚拟键码，所以以前没出问题。
 - 鱼换砖（上一轮没提交的改动）开工前收进了 git stash（iMac 和 Windows 各一份），没进 art 提交，新包里也没有。
+
+## 玩法 play-1~4：一天的循环（2026-10-30，用户整份下达）
+- stash「鱼换砖」（iMac、Windows 各一份，内容相同）：只留下对得上的两点，按本轮规则重写：钓上就进该玩家的 Stock 生鱼；新开局不送砖（保留 `TestBricks` 常量，值改成 0，原 stash 是删掉这个常量）。对不上的都丢掉：随处可换、「换到一块砖 / 先钓一条鱼」、左上角改成库存数。两份 stash 都已 drop，没有第二套兑换。
+- play-1：`FishingStateMachine.Credit` 在 CaughtCount 增加时把差额记进这名玩家的生鱼，FishingLogic 不碰 Stock。左上/右上原来的字不动，后面接「生鱼 n」，这几个字用 WarmCJK 单独画。WarmCJK 用第一次下载的思源黑体原文件重新切子集，没有再下载：现在只含暂停菜单、三句底部提示、「生鱼」和 0–9、空格，art-4 时为 stash 预留的字已去掉。

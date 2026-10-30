@@ -79,9 +79,18 @@ public class FishingStateMachine : MonoBehaviour
     public static bool DemoDrives(Component c) => Demo && c.name == "Player";   // 演示只驱动名为 Player 的那一个
     public FishingLogic Logic { get; private set; }
     public bool Busy => Logic.State != FishState.Idle;
+    public Font font;   // 「生鱼 n」用 WarmCJK（和暂停菜单同一份），网页端才显示得出中文
     int owner;   // 第几名玩家：P1 Space，P2 Keypad5
     float atSpot;
-    int logged;
+    int logged;   // 已经记进 Stock 的条数
+    GUIStyle cjk;
+
+    // 钓上就记账：CaughtCount 比已记的多几条，就给这名玩家的生鱼加几条（每人各算各的）。FishingLogic 本身不碰 Stock。
+    public static int Credit(Stock s, int owner, int logged, int caught)
+    {
+        if (caught > logged) s.Add(ItemType.RawFish, caught - logged, owner);
+        return Mathf.Max(logged, caught);
+    }
 
     void Awake()
     {
@@ -100,7 +109,11 @@ public class FishingStateMachine : MonoBehaviour
         if (demo) DemoInput(out down, out hold);
         if (down && (Busy || Config.InFishSpot(transform.position))) Logic.Press();
         Logic.Tick(Time.deltaTime, hold);
-        if (demo && Logic.CaughtCount > logged) { logged = Logic.CaughtCount; Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}"); }
+        if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
+        {
+            if (demo) Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");
+            logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount);
+        }
     }
 
     // 演示：走到码头尽头站稳 1 s 后抛竿，咬钩 0.4 s 后提竿，收线时张力 <0.7 才拉；钓上一条就停。
@@ -118,7 +131,10 @@ public class FishingStateMachine : MonoBehaviour
     {
         if (Pause.On) return;   // 暂停时让开
         float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
-        GUI.Label(new Rect(x, 10, 300, 22), $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}");
+        string head = $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}";   // 原来的字不动，后面接「生鱼 n」
+        GUI.Label(new Rect(x, 10, 300, 22), head);
+        cjk ??= new GUIStyle(GUI.skin.label) { font = font, fontSize = 13 };
+        GUI.Label(new Rect(x + GUI.skin.label.CalcSize(new GUIContent(head)).x + 6f, 10, 120, 22), $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}", cjk);
         if (Logic.State != FishState.Reel) return;
         GUI.Box(new Rect(bx, 36, 200, 14), GUIContent.none);
         GUI.Box(new Rect(bx, 36, 200 * Mathf.Clamp01(Logic.Tension), 14), "tension");
