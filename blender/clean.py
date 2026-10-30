@@ -2,7 +2,7 @@
 glb -> apply transforms -> origin bottom-center -> M_<name> + textures <=1024 -> AN_idle/AN_walk -> FBX,
 then re-import every FBX and assert; prints one line CLEAN PASS / CLEAN FAIL: <first reason>.
 --placeholders <dir>: only write test glbs (rock/boat/cabin/character.glb in <dir>, split character in <dir>/split)."""
-import glob, math, os, shutil, sys
+import glob, math, os, re, shutil, sys
 
 import bpy
 from mathutils import Matrix, Vector
@@ -148,7 +148,8 @@ def bottom_center(meshes):
 
 def fix_materials(name):
     mats = {m for o in bpy.data.objects for m in getattr(o.data, "materials", []) if m}
-    for i, m in enumerate(sorted(mats, key=lambda m: m.name)):
+    loose = [m for m in mats if not m.name.startswith("M_")]   # model.py 已按色卡起名 M_wood…，保留；其余（角色）照旧编号
+    for i, m in enumerate(sorted(loose, key=lambda m: m.name)):
         m.name = f"M_{name}" if i == 0 else f"M_{name}_{i}"
     for img in bpy.data.images:
         w, h = img.size
@@ -256,7 +257,8 @@ def verify(dst):
         if any(abs(s - 1) > 1e-4 for s in o.scale) or any(abs(r) > 1e-4 for r in o.rotation_euler):
             return f"{o.name} scale={tuple(round(s, 4) for s in o.scale)} rot={tuple(round(r, 4) for r in o.rotation_euler)}"
     for m in bpy.data.materials:
-        if not m.name.startswith("M_") or "." in m.name:
+        base = re.sub(r"\.\d{3}$", "", m.name)   # 几个 FBX 共用色卡材质名，一起回读时 Blender 会加 .001
+        if not base.startswith("M_") or "." in base:
             return f"material name {m.name}"
         if m.users == 0:
             return f"orphan material {m.name}"

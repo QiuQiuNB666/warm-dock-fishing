@@ -52,13 +52,8 @@ public static class BuildFx
             lamps.Add(Lamp(lamp.transform, Vector3.zero, 7f));
         }
 
-        // 小屋窗：贴在朝相机的一面（-Z），按模型包围盒定位，换正式模型不用改
+        // 小屋窗：窗玻璃已做进 SM_cabin（朝相机的 -Z 面，材质 M_glow，随时段一起亮）；这里只在窗前补一盏点光源
         var b = cabin.GetComponentInChildren<Renderer>().bounds;
-        for (int i = -1; i <= 1; i += 2)
-        {
-            var w = BuildNature.Box("CabinWindow", cabin.transform, new Vector3(b.center.x + i * b.extents.x * 0.45f, b.center.y + b.extents.y * 0.1f, b.min.z - 0.02f), new Vector3(b.size.x * 0.18f, b.size.y * 0.22f, 0.04f), glow);
-            Object.DestroyImmediate(w.GetComponent<Collider>());
-        }
         lamps.Insert(1, Lamp(cabin.transform, new Vector3(b.center.x, b.center.y, b.min.z - 0.8f) - cabin.transform.position, 6f));   // 网页只留前两盏：最近的灯笼 + 小屋
 
         tod.glow = glow;

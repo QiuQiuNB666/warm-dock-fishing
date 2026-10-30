@@ -129,6 +129,8 @@ public static class BuildScene
         if (fbx == null) return BuildNature.Box(name, parent, pos + Vector3.up * fallbackSize.y * 0.5f, fallbackSize, fallback);
         var g = (GameObject)PrefabUtility.InstantiatePrefab(fbx, parent);
         g.transform.position = pos;
+        foreach (var r in g.GetComponentsInChildren<Renderer>())   // 模型材质按名字换成 Materials/ 下同名的 Config 色材质（M_wood、M_glow…），颜色只认 Config
+            r.sharedMaterials = r.sharedMaterials.Select(m => m != null && AssetDatabase.LoadAssetAtPath<Material>($"{Art}Materials/{m.name}.mat") is Material s ? s : m).ToArray();
         return g;
     }
 }

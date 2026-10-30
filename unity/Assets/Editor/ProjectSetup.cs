@@ -111,6 +111,8 @@ public class WarmImport : AssetPostprocessor
         if (skinned) mi.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;   // 默认 NoAvatar 时模型上不带 Animator
     }
 
+    void OnPostprocessMaterial(Material m) => m.SetFloat("_Smoothness", BuildNature.Matte);   // 模型自带材质（角色）也按粗糙度 0.9
+
     void OnPreprocessAnimation()
     {
         var mi = (ModelImporter)assetImporter;

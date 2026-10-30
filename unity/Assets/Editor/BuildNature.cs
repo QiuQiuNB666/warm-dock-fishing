@@ -5,6 +5,7 @@ using UnityEngine;
 public static class BuildNature
 {
     public const string GenDir = "Assets/Art/Generated";
+    public const float Matte = 0.1f;   // 光滑度 0.1 = 粗糙度 0.9：俯视下木头、石头是干的，不发亮
 
     public static void Build(Transform root, Material waterMat)
     {
@@ -91,7 +92,7 @@ public static class BuildNature
             AssetDatabase.CreateAsset(m, path);
         }
         m.SetColor("_BaseColor", c);
-        m.color = c;
+        m.color = c; m.SetFloat("_Smoothness", Matte);
         EditorUtility.SetDirty(m);
         return m;
     }
