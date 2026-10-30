@@ -47,9 +47,10 @@ public static class BuildFx
         foreach (float z in Config.LanternZ)
         {
             BuildNature.Box("LanternPole", lanterns, new Vector3(x, Config.GroundY + 0.75f, z), new Vector3(0.1f, 1.5f, 0.1f), pole);
-            var lamp = BuildNature.Box("Lantern", lanterns, new Vector3(x, Config.GroundY + 1.6f, z), new Vector3(0.28f, 0.34f, 0.28f), glow);
-            Object.DestroyImmediate(lamp.GetComponent<Collider>());
-            lamps.Add(Lamp(lamp.transform, Vector3.zero, 7f));
+            var lamp = BuildScene.Model("SM_lantern", lanterns, new Vector3(x, Config.GroundY + 1.45f, z), new Vector3(0.28f, 0.34f, 0.28f), glow);   // 低模灯笼，发光部分仍是 M_glow
+            lamp.name = "Lantern";
+            if (lamp.TryGetComponent<Collider>(out var col)) Object.DestroyImmediate(col);
+            lamps.Add(Lamp(lamp.transform, Vector3.up * 0.2f, 7f));   // 点光源在灯身中间
         }
 
         // 小屋窗：窗玻璃已做进 SM_cabin（朝相机的 -Z 面，材质 M_glow，随时段一起亮）；这里只在窗前补一盏点光源

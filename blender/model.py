@@ -13,7 +13,8 @@ import bpy
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PALETTE = {   # Config.cs 已有的颜色；M_glow 是 BuildFx 现有的发光材质（灯笼、窗）
     "M_wood": (0.62, 0.43, 0.27), "M_wood_dark": (0.45, 0.30, 0.19), "M_coral": (0.96, 0.50, 0.45),
-    "M_cliff": (0.58, 0.55, 0.50), "M_leaf": (0.36, 0.66, 0.38), "M_glow": (1.0, 0.9, 0.7),
+    "M_cliff": (0.58, 0.55, 0.50), "M_leaf": (0.36, 0.66, 0.38), "M_trunk": (0.50, 0.35, 0.22),
+    "M_bedding": (0.95, 0.93, 0.86), "M_glow": (1.0, 0.9, 0.7),
 }
 LIMIT = {"cabin": 1500, "boat": 800, "rock": 400}   # 其余每件 ≤200
 
@@ -44,6 +45,16 @@ class Part:
             if k not in skip:
                 self.face([c[j] for j in idx], mat)
 
+    def tube(self, rings, mats, top=None):
+        """自下而上的截面环（同点数、逆时针）连成侧面，mats[i] 是第 i 段材质；top 给材质就封顶。"""
+        for r0, r1, m in zip(rings, rings[1:], mats):
+            n = len(r0)
+            for i in range(n):
+                j = (i + 1) % n
+                self.face([r0[i], r0[j], r1[j], r1[i]], m)
+        if top:
+            self.face(rings[-1], top)
+
     def cone(self, base, apex, mat):
         n = len(base)
         for i in range(n):
@@ -60,6 +71,10 @@ class Part:
 def ring(n, r, z, cx=0.0, cy=0.0, rot=0.0):
     """绕 Z 的 n 边形截面，从上往下看逆时针。"""
     return [(cx + r * math.cos(rot + 2 * math.pi * i / n), cy + r * math.sin(rot + 2 * math.pi * i / n), z) for i in range(n)]
+
+
+def rect(x0, y0, x1, y1, z):
+    return [(x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z)]
 
 
 def material(name):
@@ -206,7 +221,84 @@ def rock():
     return P
 
 
-MODELS = {"cabin": cabin, "boat": boat, "rock": rock}
+# ---------- 场景小件（每件 ≤200 面；名字、数量、位置都由 BuildScene/BuildNature/BuildFx 照旧给） ----------
+def tree():   # 三层尖树冠 + 六棱树干，大小对着原来的圆锥树（s=1 时高约 3.6 m、下层冠径约 2.6 m）
+    P = Part()
+    rnd = random.Random(3)
+    P.tube([ring(6, .16, 0), ring(6, .11, 1.3)], ["M_trunk"])                                  # 顶被树冠盖住，不封
+    for r, z, h, rot in ((1.3, .9, 1.5, 0.0), (1.0, 1.7, 1.4, .45), (.65, 2.45, 1.2, .2)):
+        base = [(x * rnd.uniform(.9, 1.1), y * rnd.uniform(.9, 1.1), zz + rnd.uniform(-.08, .05)) for x, y, zz in ring(7, r, z, rot=rot)]
+        P.cone(base, (rnd.uniform(-.05, .05), rnd.uniform(-.05, .05), z + h), "M_leaf")       # 冠底朝下，俯视看不见，不封
+    return P
+
+
+def crate():   # 0.8 m 木箱：深色角条和上下两圈横条，顶面两道板缝
+    P = Part()
+    s, b = .4, .07
+    P.box((-s + .03, -s + .03, 0), (s - .03, s - .03, 2 * s - .03), "M_wood", "b")
+    for x0, x1 in ((-s, -s + b), (s - b, s)):
+        for y0, y1 in ((-s, -s + b), (s - b, s)):
+            P.box((x0, y0, 0), (x1, y1, 2 * s), "M_wood_dark", "b")
+    for z0 in (0, 2 * s - b):
+        for lo, hi in (((-s + b, -s, z0), (s - b, -s + b, z0 + b)), ((-s + b, s - b, z0), (s - b, s, z0 + b)),
+                       ((-s, -s + b, z0), (-s + b, s - b, z0 + b)), ((s - b, -s + b, z0), (s, s - b, z0 + b))):
+            P.box(lo, hi, "M_wood_dark", "b")
+    for y in (-.12, .12):
+        P.box((-s + b, y - .012, 2 * s - .03), (s - b, y + .012, 2 * s - .025), "M_wood_dark", "b")
+    return P
+
+
+def barrel():   # 高 1 m、鼓肚，两道深色铁箍，顶上深色箍沿 + 稍凹的木盖
+    P = Part()
+    rs = [ring(8, r, z, rot=math.pi / 8) for z, r in ((0, .265), (.06, .29), (.14, .295), (.5, .325), (.86, .295), (.94, .29), (1.0, .265))]
+    P.tube(rs, ["M_wood", "M_wood_dark", "M_wood", "M_wood", "M_wood_dark", "M_wood"])
+    P.tube([rs[-1], ring(8, .22, 1.0, rot=math.pi / 8), ring(8, .22, .975, rot=math.pi / 8)], ["M_wood_dark", "M_wood_dark"], top="M_wood")
+    return P
+
+
+def lantern():   # 发光灯身 + 深色底座、角柱、四坡小顶（原来是 0.28×0.34×0.28 的发光方块）
+    P = Part()
+    P.box((-.15, -.15, 0), (.15, .15, .05), "M_wood_dark", "b")
+    P.box((-.13, -.13, .05), (.13, .13, .34), "M_glow", "bt")
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            P.box((sx * .13 - .02, sy * .13 - .02, .05), (sx * .13 + .02, sy * .13 + .02, .34), "M_wood_dark", "bt")
+    P.cone(rect(-.16, -.16, .16, .16, .34), (0, 0, .44), "M_wood_dark")
+    P.box((-.025, -.025, .44), (.025, .025, .5), "M_wood_dark", "b")
+    return P
+
+
+def bedframe():   # 2 m × 1 m（Config.BedSize），床头板在 -X（靠小屋）
+    P = Part()
+    L, Wd, w = 1.0, .5, .07
+    for x0, x1 in ((-L, -L + w), (L - w, L)):
+        for y0, y1 in ((-Wd, -Wd + w), (Wd - w, Wd)):
+            P.box((x0, y0, 0), (x1, y1, .12), "M_wood_dark", "b")                                # 四条腿
+    P.box((-L, -Wd, .12), (L, -Wd + w, .28), "M_wood_dark", "b")                                # 两条侧板
+    P.box((-L, Wd - w, .12), (L, Wd, .28), "M_wood_dark", "b")
+    P.box((-L + w, -Wd + w, .12), (L - w, Wd - w, .16), "M_wood_dark", "b")                     # 床板
+    P.box((-L, -Wd, .12), (-L + w, Wd, .78), "M_wood_dark", "b")                                # 床头板
+    P.box((L - w, -Wd, .12), (L, Wd, .46), "M_wood_dark", "b")                                  # 床尾板
+    return P
+
+
+def bedding():   # 白床垫（上沿倒角）+ 枕头；BuildScene 把它放到床板顶（离地 0.16 m）
+    P = Part()
+    P.tube([rect(-.93, -.43, .93, .43, 0), rect(-.93, -.43, .93, .43, .13), rect(-.9, -.4, .9, .4, .16)], ["M_bedding", "M_bedding"], top="M_bedding")
+    P.tube([rect(-.88, -.3, -.56, .3, .16), rect(-.86, -.28, -.58, .28, .23), rect(-.83, -.24, -.61, .24, .26)], ["M_bedding", "M_bedding"], top="M_bedding")
+    return P
+
+
+def plank():   # 码头木板：Config.DockWidth × (PlankDepth − PlankGap) × 0.2，顶面木色、四个侧面深木色（板缝里露出来）
+    P = Part()
+    lo, hi = (-1.5, -.225, 0), (1.5, .225, .2)
+    P.box(lo, hi, "M_wood", "bflkr")   # 先放顶面：材质槽 0 = M_wood（BuildSceneTests 读码头第一块板的 sharedMaterial）
+    P.box(lo, hi, "M_wood_dark", "bt")
+    return P
+
+
+MODELS = {"cabin": cabin, "boat": boat, "rock": rock, "tree": tree, "crate": crate, "barrel": barrel,
+          "lantern": lantern, "bedframe": bedframe, "bedding": bedding, "plank": plank}
 
 
 def build(name, part):

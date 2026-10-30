@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-// 海滩、低多边形树群（圆锥+圆柱）、河流、瀑布，全部原生几何体；网格存为资源以便场景引用。
+// 海滩、低多边形树群（blender/model.py 的 SM_tree）、河流、瀑布；生成的网格存为资源以便场景引用。
 public static class BuildNature
 {
     public const string GenDir = "Assets/Art/Generated";
@@ -17,33 +17,21 @@ public static class BuildNature
         var b = Config.Beach;
         Box("Beach", nature, new Vector3(b.center.x, Config.GroundY - 1.5f, b.center.y), new Vector3(b.width + 10f, 3f, b.height + 4f), sand);
 
-        // 树群：固定种子，避开码头入口与河道
-        var cone = SaveMesh(Cone(7, 1f, 1f), "cone");
+        // 树群：固定种子，避开码头入口与河道。model.py 的低模树；随机数抽取顺序不变，位置、大小和原来一样，朝向按位置算
         var leaf = Mat("M_leaf", Config.Leaf);
-        var trunk = Mat("M_trunk", Config.Trunk);
+        Mat("M_trunk", Config.Trunk);
         var rng = new System.Random(Config.TreeSeed);
         for (int i = 0, placed = 0; placed < Config.TreeCount && i < 500; i++)
         {
             var p = new Vector3(Mathf.Lerp(b.xMin, b.xMax, (float)rng.NextDouble()), Config.GroundY, Mathf.Lerp(b.yMin, b.yMin + 9f, (float)rng.NextDouble()));
             if (Mathf.Abs(p.x) < 4f || Mathf.Abs(p.x - Config.RiverStart.x) < Config.RiverWidth + 1f || (p - Config.CabinPos).magnitude < 4f) continue;
             float s = 0.8f + (float)rng.NextDouble() * 0.6f;
-            var tree = new GameObject("Tree").transform;
-            tree.SetParent(nature, false);
-            tree.position = p;
-            var t = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            t.name = "Trunk"; t.transform.SetParent(tree, false);
-            t.transform.localPosition = new Vector3(0f, 0.6f * s, 0f);
-            t.transform.localScale = new Vector3(0.25f * s, 0.6f * s, 0.25f * s);
-            t.GetComponent<Renderer>().sharedMaterial = trunk;
-            for (int k = 0; k < 2; k++)
-            {
-                var c = new GameObject("Leaves", typeof(MeshFilter), typeof(MeshRenderer));
-                c.transform.SetParent(tree, false);
-                c.transform.localPosition = new Vector3(0f, (1.1f + k * 0.9f) * s, 0f);
-                c.transform.localScale = new Vector3(1.4f - k * 0.4f, 1.6f, 1.4f - k * 0.4f) * s;
-                c.GetComponent<MeshFilter>().sharedMesh = cone;
-                c.GetComponent<MeshRenderer>().sharedMaterial = leaf;
-            }
+            var tree = BuildScene.Model("SM_tree", nature, p, new Vector3(2.6f, 3.6f, 2.6f) * s, leaf);
+            tree.name = "Tree";
+            tree.transform.localScale = Vector3.one * s;
+            tree.transform.rotation = Quaternion.Euler(0f, (p.x * 53f + p.z * 31f) % 360f, 0f);
+            var trunk = tree.AddComponent<BoxCollider>();   // 只挡树干，和原来的圆柱一样粗
+            trunk.center = Vector3.up * 0.6f; trunk.size = new Vector3(0.25f, 1.2f, 0.25f);
             placed++;
         }
 
@@ -122,26 +110,6 @@ public static class BuildNature
                 tri[t++] = a + 1; tri[t++] = c; tri[t++] = c + 1;
             }
         var m = new Mesh { name = "Grid", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32, vertices = v, triangles = tri };
-        m.RecalculateNormals();
-        m.RecalculateBounds();
-        return m;
-    }
-
-    // 低多边形圆锥：底面半径 r、高 h，硬边（每面独立顶点）。
-    public static Mesh Cone(int sides, float r, float h)
-    {
-        var v = new Vector3[sides * 6];
-        var tri = new int[sides * 6];
-        for (int i = 0; i < sides; i++)
-        {
-            float a0 = i * Mathf.PI * 2f / sides, a1 = (i + 1) * Mathf.PI * 2f / sides;
-            Vector3 p0 = new Vector3(Mathf.Cos(a0) * r, 0f, Mathf.Sin(a0) * r), p1 = new Vector3(Mathf.Cos(a1) * r, 0f, Mathf.Sin(a1) * r);
-            int k = i * 6;
-            v[k] = p0; v[k + 1] = Vector3.up * h; v[k + 2] = p1;   // 侧面
-            v[k + 3] = p0; v[k + 4] = p1; v[k + 5] = Vector3.zero;  // 底面
-        }
-        for (int i = 0; i < tri.Length; i++) tri[i] = i;
-        var m = new Mesh { name = "Cone", vertices = v, triangles = tri };
         m.RecalculateNormals();
         m.RecalculateBounds();
         return m;

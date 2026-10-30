@@ -36,6 +36,8 @@ public class BuildSceneTests
         var planks = All().Where(g => g.name == "Plank").Select(g => g.GetComponent<Renderer>().bounds).ToArray();
         Assert.AreEqual(Config.DockLength, planks.Max(b => b.max.z) - planks.Min(b => b.min.z), 0.1f);
         Assert.AreEqual(Config.GroundY, planks[0].max.y, 1e-3f);   // 码头顶面 = 地面
+        var plank = All().First(g => g.name == "Plank").GetComponent<BoxCollider>();   // 低模木板补的碰撞体，顶面也要和地面齐平才能走
+        Assert.AreEqual(Config.GroundY, plank.transform.TransformPoint(plank.center + Vector3.up * plank.size.y * 0.5f).y, 1e-3f);
         Assert.AreEqual(Config.GroundY, One("Beach").GetComponent<Renderer>().bounds.max.y, 1e-3f);
         Assert.IsTrue(Config.InFishSpot(Config.FishSpot) && Config.OnDock(Config.FishSpot));
     }

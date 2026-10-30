@@ -8,7 +8,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC = ("rock", "boat", "cabin")
+STATIC = ("rock", "boat", "cabin", "tree", "crate", "barrel", "lantern", "bedframe", "bedding", "plank")   # blender/model.py 产出
 ANIMS = ("idle", "walk", "cast", "wait", "bite", "reel", "catch", "lose")   # blender/rig.py 产出
 LOOPS = ("idle", "walk", "wait", "reel")   # 只有循环动作要求首尾帧一致
 TEX_MAX = 1024
@@ -56,7 +56,7 @@ def make_placeholders(d):
     for i, name in enumerate(STATIC):
         reset()
         add = (bpy.ops.mesh.primitive_ico_sphere_add, bpy.ops.mesh.primitive_cube_add,
-               bpy.ops.mesh.primitive_cylinder_add)[i]
+               bpy.ops.mesh.primitive_cylinder_add)[i % 3]
         add(location=(0.3, -0.2, 0.7))  # deliberately off-origin / rotated / scaled
         o = bpy.context.object
         o.rotation_euler = (0.2, 0, 0.5)
