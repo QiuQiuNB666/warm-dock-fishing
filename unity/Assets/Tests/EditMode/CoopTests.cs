@@ -136,4 +136,15 @@ public class CoopTests
         Assert.IsTrue(Bricks.Trade(s, 0, Config.DoorPos));
         Assert.AreEqual(new[] { 0, 1 }, new[] { s.Count(ItemType.RawFish, 0), s.brick });
     }
+
+    // play-3：沙滩上同格往上垒，最多 MaxHeight 层；没有第一层时第二层失败，同格同层、第 5 层、码头上都失败
+    [Test] public void StackBricks()
+    {
+        var s = new Stock { brick = 9 }; Vector2Int c = Bricks.Cell(Config.BedPos + new Vector3(0f, 0f, -3f));
+        Assert.IsNull(Bricks.TryPlace(s, c, 1), "没有第一层时第二层失败");
+        for (int k = 0; k < Config.MaxHeight; k++) Assert.IsNotNull(Bricks.TryPlace(s, c, k), $"第 {k + 1} 层");
+        Assert.IsNull(Bricks.TryPlace(s, c, Config.MaxHeight), "第 5 层失败"); Assert.IsNull(Bricks.TryPlace(s, c, 1), "同格同层再放失败");
+        Assert.IsNull(Bricks.TryPlace(s, Bricks.Cell(new Vector3(0.2f, Config.GroundY, 5f)), 0), "码头上失败");
+        Assert.AreEqual(new[] { 4, 5 }, new[] { Bricks.Height(s, c), s.brick });
+    }
 }
