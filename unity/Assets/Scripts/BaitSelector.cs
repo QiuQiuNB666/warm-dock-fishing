@@ -11,6 +11,7 @@ public class BaitSelector : MonoBehaviour
 
     void Update()
     {
+        if (Pause.On) return;
         int i = InputManager2P.BaitDown(owner);
         if (i >= 0) Select(i);
     }
@@ -27,6 +28,7 @@ public class BaitSelector : MonoBehaviour
 
     void OnGUI()
     {
+        if (Pause.On) return;   // 暂停时让开
         var keys = KeyMap.Players[owner].Bait;
         float y = Screen.height - 40, x0 = owner == 0 ? 10f : Screen.width - 10f - Config.Baits.Length * 110f;   // P1 左下，P2 右下
         for (int i = 0; i < Config.Baits.Length; i++)

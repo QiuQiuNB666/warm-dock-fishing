@@ -46,4 +46,9 @@ public static partial class Config
     public const int MaxBrick = 999, MaxWood = 999, MaxStone = 999;
     public const int MaxFish = 64, MaxCloth = 64;   // 生鱼、熟鱼、布
     public const float InteractRange = 2f, HugRange = 1.5f;
+
+    // 子阶段 4：测试砖。新开局（没有存档）库存里给 TestBricks 块，用 B（P2 小键盘 2）放到面前那一格。
+    public const int TestBricks = 1;
+    public const float BrickSize = 0.9f;
+    public static readonly Color BrickColor = new Color32(0xC4, 0x78, 0x5A, 0xFF);   // 陶土色
 }

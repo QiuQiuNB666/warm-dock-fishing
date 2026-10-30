@@ -73,6 +73,27 @@ public class CoopTests
         foreach (var bad in new[] { "", "{not json", "{\"version\":2}", "null" }) Assert.IsNull(PierSave.Parse(bad), bad);
     }
 
+    // 子阶段 4：测试砖。库存有砖才能放；只放沙滩上可走、不在码头的格子；同格再放失败；存、清内存、读，砖还在。
+    [Test] public void TestBrickRules()
+    {
+        var s = new Stock();
+        Vector2Int beach = Bricks.Cell(Config.BedPos + new Vector3(0f, 0f, -3f));
+        Assert.IsNull(Bricks.TryPlace(s, beach), "没砖不能放");
+        s.Add(ItemType.Brick, 2);
+        Assert.IsNull(Bricks.TryPlace(s, Bricks.Cell(new Vector3(0.2f, Config.GroundY, -0.3f))), "码头上不准放砖");
+        Assert.IsNull(Bricks.TryPlace(s, Bricks.Cell(new Vector3(5f, Config.GroundY, 10f))), "海里不能放");
+        Assert.IsNotNull(Bricks.TryPlace(s, beach));
+        Assert.IsNull(Bricks.TryPlace(s, beach), "同格再放必须失败");
+        Assert.AreEqual(1, s.brick);
+        Vector3 c = Bricks.Center(beach, 0);
+        Assert.IsTrue(Config.OnBeach(c) && Config.IsWalkable(c));
+        string json = PierSave.ToJson(PierSave.Capture(0f, Config.BedPos, s, 2));
+        s = null;   // 清内存
+        Stock r = PierSave.Restore(PierSave.Parse(json), out _, out _);
+        Assert.AreEqual(1, r.bricks.Count);
+        Assert.AreEqual(new[] { beach.x, beach.y }, new[] { r.bricks[0].x, r.bricks[0].z });
+    }
+
     [Test] public void PlayerPrefsRoundTripThenDelete()
     {
         string old = PlayerPrefs.HasKey(PierSave.Key) ? PlayerPrefs.GetString(PierSave.Key) : null;

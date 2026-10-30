@@ -71,6 +71,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   stage-1  unity/Assets/Scripts/: KeyMap.cs InputManager2P.cs
   stage-2  unity/Assets/Tests/EditMode/CoopTests.cs（双人相关的纯逻辑测试，SystemsTests 保持只测钓鱼/时段）
   stage-3  unity/Assets/Scripts/: Stock.cs PierSave.cs
+  stage-4  unity/Assets/Scripts/: Pause.cs Bricks.cs
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

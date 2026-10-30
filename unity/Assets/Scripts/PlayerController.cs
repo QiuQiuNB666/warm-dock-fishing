@@ -23,7 +23,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        Vector3 dir = fishing != null && fishing.Busy ? Vector3.zero : ReadInput();
+        Vector3 dir = Pause.On || (fishing != null && fishing.Busy) ? Vector3.zero : ReadInput();   // 暂停时不读移动
         Vector3 step = dir * Config.PlayerSpeed * Time.deltaTime;
         step = Constrain(transform.position, step);
         cc.Move(step + Vector3.down * 0.01f);   // 地面同高，只给一点贴地力

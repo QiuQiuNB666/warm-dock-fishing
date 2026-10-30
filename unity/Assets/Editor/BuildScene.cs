@@ -105,6 +105,8 @@ public static class BuildScene
         bait2.fishing = fishing2; bait2.owner = 1;
         game.AddComponent<PlayerManager>();
         game.AddComponent<PierSave>();   // 开局读档（没档/坏档新开），两人站到床边
+        game.AddComponent<Bricks>().material = BuildNature.Mat("M_brick", Config.BrickColor);   // 测试砖
+        game.AddComponent<Pause>();
 
         BuildNature.Build(root, water);
         System.IO.Directory.CreateDirectory("Assets/Scenes");

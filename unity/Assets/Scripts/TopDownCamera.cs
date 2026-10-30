@@ -61,7 +61,7 @@ public class TopDownCamera : MonoBehaviour
     // 屏外指示：双人时谁跑出画面，就在屏幕边缘朝他的方向画一个帽色点（不是库存面板）
     void OnGUI()
     {
-        if (!Two || cam == null) return;
+        if (!Two || cam == null || Pause.On) return;
         Edge(target, Config.HatDot[0]);
         Edge(target2, Config.HatDot[1]);
     }

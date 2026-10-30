@@ -93,6 +93,9 @@ public class PierSave : MonoBehaviour
             var tod = FindAnyObjectByType<TimeOfDay>();
             if (tod != null) tod.t = t;
         }
+        else Stock.Current = new Stock { brick = Config.TestBricks };   // 新开局：给测试砖
+        var bricks = FindAnyObjectByType<Bricks>();
+        if (bricks != null) bricks.Rebuild();   // 按记录把砖摆回去
         PlaceAtBed();
     }
 

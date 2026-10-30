@@ -93,3 +93,4 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - stage-1：P2 的 BaitSelector 挂在 Player2 身上（单人模式随它一起关）；P1 的仍在 Game 上。按键状态走 `InputManager2P.Held/Pressed`，测试传自己的函数。
 - stage-2：`BedPos` 改为属性——它引用另一个 partial 文件里的 `CabinPos`，跨文件的静态字段初始化顺序不保证。双人相关测试挪到 CoopTests.cs（SystemsTests 超了 150 行），SystemsTests 的钓鱼用例一字未动。`CamFrameMargin = 0.75`。
 - stage-3：PlayerPrefs 在 Windows 存于 `HKCU\Software\Warm\Warm`，值名 `pier.save.v1_h928868525`（djb2-xor 哈希）。坏档：解析失败或 version≠1 → 删键、打一行 `SAVE-DISCARDED`、照常开局。
+- stage-4：游戏里还没有任何获得砖的途径，所以「先 Stock 里有 1 块砖再放」的做法是：**新开局（没有存档）库存给 `TestBricks = 1` 块**，B（P2 小键盘 2）放到面前那一格；存过档就以存档为准。格子＝`floor(x / CellSize)`，砖心在格子中心、离地 BrickSize/2；只认沙滩上、IsWalkable 为真、不在码头上的格子。暂停：`Pause.On` 为真时 PlayerController 不读移动、FishingStateMachine 整个 Update 跳过（不读输入也不走计时）、BaitSelector 不读键；鱼获、张力条、饵按钮、F3、屏外指示点都在暂停时不画；TimeOfDay.frozen 置真、恢复时还原原值。暖纸底是半透明的（α 0.55；0.72 时菜单后面的砖太淡），菜单后面的砖还看得见。中文按钮用 OnGUI 默认字体：桌面 Windows 会回退到系统字体能显示，**网页端没有系统字体回退，中文可能显示成方块**，未验证。

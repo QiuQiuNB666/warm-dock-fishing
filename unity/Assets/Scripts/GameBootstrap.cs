@@ -82,7 +82,7 @@ public class GameBootstrap : MonoBehaviour
 
     void OnGUI()
     {
-        if (!hud) return;
+        if (!hud || Pause.On) return;   // 暂停时让开
         long mb = Profiler.GetTotalAllocatedMemoryLong() / (1024 * 1024);
         GUI.Label(new Rect(Screen.width - 220, 10, 210, 44),
                   $"FPS {fps:0}\nMem {mb} MB  Q:{QualitySettings.names[QualitySettings.GetQualityLevel()]}");

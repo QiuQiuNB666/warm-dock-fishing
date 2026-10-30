@@ -92,6 +92,7 @@ public class FishingStateMachine : MonoBehaviour
 
     void Update()
     {
+        if (Pause.On) return;   // 暂停时不读钓鱼，也不走钓鱼计时
         bool pointer = InputManager2P.PointerAllowed && owner == 0;   // 双人时鼠标不抛竿
         bool down = InputManager2P.FishDown(owner) || (pointer && Input.GetMouseButtonDown(0));
         bool hold = InputManager2P.FishHeld(owner) || (pointer && Input.GetMouseButton(0));
@@ -115,6 +116,7 @@ public class FishingStateMachine : MonoBehaviour
 
     void OnGUI()
     {
+        if (Pause.On) return;   // 暂停时让开
         float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
         GUI.Label(new Rect(x, 10, 300, 22), $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}");
         if (Logic.State != FishState.Reel) return;
