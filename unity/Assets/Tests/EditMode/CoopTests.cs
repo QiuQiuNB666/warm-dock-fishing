@@ -16,13 +16,8 @@ public class CoopTests
     [Test] public void SinglePlayerP2DoesNotMove()
     {
         int keep = Config.PlayerCount;
-        try
-        {
-            Config.PlayerCount = 1;
-            Assert.AreEqual(Vector3.zero, InputManager2P.Move(1, k => true));
-            Config.PlayerCount = 2;
-            Assert.AreEqual(1f, InputManager2P.Move(1, k => k == KeyCode.UpArrow || k == KeyCode.RightArrow).magnitude, 1e-5f);   // 对角线归一化
-        }
+        try { Config.PlayerCount = 1; Assert.AreEqual(Vector3.zero, InputManager2P.Move(1, k => true));
+              Config.PlayerCount = 2; Assert.AreEqual(1f, InputManager2P.Move(1, k => k == KeyCode.UpArrow || k == KeyCode.RightArrow).magnitude, 1e-5f); }   // 对角线归一化
         finally { Config.PlayerCount = keep; }
     }
 
@@ -41,37 +36,27 @@ public class CoopTests
     {
         var s = new Stock { brick = 12, wood = 3, stone = 999 };
         s.Set(ItemType.RawFish, 5, 0); s.Set(ItemType.CookedFish, 2, 1); s.Set(ItemType.Cloth, 64, 1);
-        s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 0 });
-        s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 1 });
+        s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 0 }); s.bricks.Add(new BrickRecord { x = -6, z = -6, layer = 1 });
         return s;
     }
 
-    [TestCase(1)]
-    [TestCase(2)]
+    [TestCase(1), TestCase(2)]
     public void SaveRoundTrip(int players)
     {
         Stock s = Sample();
         float t = 0.6180339f;
         Vector3 bed = Config.BedPos + Vector3.right;
         var d = PierSave.Parse(PierSave.ToJson(PierSave.Capture(t, bed, s, players)));
-        Assert.IsNotNull(d);
-        Assert.AreEqual(1, d.version);
-        Assert.AreEqual(players, d.players.Length);
+        Assert.IsNotNull(d); Assert.AreEqual(1, d.version); Assert.AreEqual(players, d.players.Length);
         Stock r = PierSave.Restore(d, out float t2, out Vector3 bed2);
-        Assert.AreEqual(t, t2, 1e-4f);
-        Assert.That(Vector3.Distance(bed, bed2), Is.LessThan(1e-4f));
+        Assert.AreEqual(t, t2, 1e-4f); Assert.That(Vector3.Distance(bed, bed2), Is.LessThan(1e-4f));
         Assert.AreEqual(new[] { 12, 3, 999 }, new[] { r.brick, r.wood, r.stone });
         foreach (var item in new[] { ItemType.RawFish, ItemType.CookedFish, ItemType.Cloth })
             for (int i = 0; i < players; i++) Assert.AreEqual(s.Count(item, i), r.Count(item, i), $"{item} p{i}");
-        Assert.AreEqual(2, r.bricks.Count);
-        Assert.AreEqual(1, r.bricks[1].layer);
-        Assert.IsFalse(r.dirty);
+        Assert.AreEqual(2, r.bricks.Count); Assert.AreEqual(1, r.bricks[1].layer); Assert.IsFalse(r.dirty);
     }
 
-    [Test] public void CorruptSaveIsDiscarded()
-    {
-        foreach (var bad in new[] { "", "{not json", "{\"version\":2}", "null" }) Assert.IsNull(PierSave.Parse(bad), bad);
-    }
+    [Test] public void CorruptSaveIsDiscarded() { foreach (var bad in new[] { "", "{not json", "{\"version\":2}", "null" }) Assert.IsNull(PierSave.Parse(bad), bad); }
 
     // 子阶段 4：测试砖。库存有砖才能放；只放沙滩上可走、不在码头的格子；同格再放失败；存、清内存、读，砖还在。
     [Test] public void TestBrickRules()
@@ -146,5 +131,20 @@ public class CoopTests
         Assert.IsNull(Bricks.TryPlace(s, c, Config.MaxHeight), "第 5 层失败"); Assert.IsNull(Bricks.TryPlace(s, c, 1), "同格同层再放失败");
         Assert.IsNull(Bricks.TryPlace(s, Bricks.Cell(new Vector3(0.2f, Config.GroundY, 5f)), 0), "码头上失败");
         Assert.AreEqual(new[] { 4, 5 }, new[] { Bricks.Height(s, c), s.brick });
+    }
+
+    // play-4：睡觉 → 时间回到 Config 早晨那一档，存档里砖还在；TestBricks 为 0，新档砖数 0
+    [Test] public void SleepToMorningKeepsBricks()
+    {
+        Stock keep = Stock.Current; var tod = new GameObject("tod").AddComponent<TimeOfDay>(); tod.t = 0.6f;
+        string old = PlayerPrefs.HasKey(PierSave.Key) ? PlayerPrefs.GetString(PierSave.Key) : null;
+        try
+        {
+            Stock.Current = Sample(); PierSave.Sleep(tod, null);
+            Assert.AreEqual(Config.Times[0].Elevation, TimeOfDay.Evaluate(tod.t).Elevation, 1e-4f, "早晨那一档");
+            Assert.AreEqual(2, PierSave.Read().bricks.Length, "存档里砖还在");
+            Assert.AreEqual(0, Config.TestBricks); Assert.AreEqual(0, PierSave.NewGame().brick, "新档砖数");
+        }
+        finally { Stock.Current = keep; Object.DestroyImmediate(tod.gameObject); PutBack(old); }
     }
 }
