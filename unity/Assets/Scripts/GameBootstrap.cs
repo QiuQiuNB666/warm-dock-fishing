@@ -19,8 +19,11 @@ public class GameBootstrap : MonoBehaviour
         var v = FindAnyObjectByType<Volume>();
         if (v != null && v.profile.TryGet(out Bloom bloom)) bloom.active = false;   // Medium 档：关 Bloom 保帧率
 #else
-        var disc = GameObject.Find("ShadowDisc");
-        if (disc != null) disc.SetActive(false);   // 桌面有实时软阴影，圆片只给网页
+        foreach (var name in new[] { "ShadowDisc", "ShadowDisc2" })
+        {
+            var disc = GameObject.Find(name);
+            if (disc != null) disc.SetActive(false);   // 桌面有实时软阴影，圆片只给网页
+        }
         QualitySettings.vSyncCount = 1;
         Application.targetFrameRate = 60;
 #endif
@@ -38,6 +41,8 @@ public class GameBootstrap : MonoBehaviour
         yield return null;   // 等所有 Start 跑完一帧
         if (announced) yield break;
         announced = true;
+        var pm = FindAnyObjectByType<PlayerManager>();
+        if (pm != null) pm.Bind();   // 保证两名玩家已绑好再宣布就绪（Bind 幂等）
         Debug.Log("SCENE-READY");
         string dir = Arg("-shots");
         if (!string.IsNullOrEmpty(dir)) StartCoroutine(Shots(dir));

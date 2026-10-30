@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // 场景搭建、玩法、测试共用的唯一一份常量。颜色是占位色卡，Phase 1 读参考图后按 decisions.md 色卡改这里。
-public static class Config
+public static partial class Config
 {
     // 世界：海岸线在 z=0，沙滩台地 z<0，码头沿 +Z 伸入海。地面/码头顶面同高，角色无需上下台阶。
     public const float GroundY = 1f;

@@ -32,7 +32,7 @@ public class BuildSceneTests
     [Test] public void KeyPositions()
     {
         Assert.That(Vector3.Distance(Config.FishSpot, One("FishSpot").transform.position), Is.LessThan(1e-3f));
-        Assert.That(Vector3.Distance(Config.PlayerStart, One("Player").transform.position), Is.LessThan(1e-3f));
+        Assert.That(Vector3.Distance(Config.BedPos, One("Player").transform.position), Is.LessThan(1e-3f));
         var planks = All().Where(g => g.name == "Plank").Select(g => g.GetComponent<Renderer>().bounds).ToArray();
         Assert.AreEqual(Config.DockLength, planks.Max(b => b.max.z) - planks.Min(b => b.min.z), 0.1f);
         Assert.AreEqual(Config.GroundY, planks[0].max.y, 1e-3f);   // 码头顶面 = 地面
@@ -67,6 +67,27 @@ public class BuildSceneTests
         Assert.AreSame(fishing, One("Game").GetComponent<BaitSelector>().fishing);
         var anim = p.GetComponentInChildren<Animator>();
         if (anim != null) Assert.IsFalse(anim.applyRootMotion && p.GetComponent<PlayerController>().animator == anim);
+    }
+
+    // 子阶段 0：第二名玩家 + 床。床与两人都在沙滩可走处，且不在小屋包围盒里。
+    [Test] public void TwoPlayersAndBed()
+    {
+        foreach (var n in new[] { "Player", "Player2", "Bobber", "Bobber2", "Bed" }) Assert.AreEqual(1, Count(n), n);
+        Assert.AreSame(One("Player").GetComponent<FishingStateMachine>(), One("Game").GetComponent<BaitSelector>().fishing);
+        Assert.IsNotNull(One("Game").GetComponent<PlayerManager>());
+        PlayerContext p1 = One("Player").GetComponent<PlayerContext>(), p2 = One("Player2").GetComponent<PlayerContext>();
+        Assert.AreEqual(0, p1.playerIndex); Assert.AreEqual(1, p2.playerIndex);
+        Assert.AreEqual(Config.GenderP1, p1.gender); Assert.AreEqual(Config.GenderP2, p2.gender);
+        Assert.That(Vector3.Distance(Config.BedPos + Config.P2BedOffset, p2.transform.position), Is.LessThan(1e-3f));
+        var cabin = One("World").transform.Cast<Transform>().First(t => t.name == "SM_cabin").GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, b) => { a.Encapsulate(b); return a; });
+        bool InCabin(Vector3 p, float r) => p.x + r > cabin.min.x && p.x - r < cabin.max.x && p.z + r > cabin.min.z && p.z - r < cabin.max.z;
+        var bed = One("Bed").transform.position;
+        foreach (var p in new[] { bed, Config.BedPos, p2.transform.position })
+        {
+            Assert.IsTrue(Config.OnBeach(p) && Config.IsWalkable(p), $"{p} 不在沙滩可走处");
+            Assert.IsFalse(InCabin(p, 0.35f), $"{p} 在小屋里");
+        }
+        Assert.IsFalse(InCabin(bed, Config.BedSize.x * 0.5f), "床压到小屋");
     }
 
     [Test] public void FbxScaleAndRotation()

@@ -79,7 +79,14 @@ public static class BuildScene
         for (int i = 0; i < Config.RockPos.Length; i++)
             Model("SM_rock", root, Config.RockPos[i], Vector3.one, BuildNature.Mat("M_cliff", Config.Cliff)).transform.localScale = Vector3.one * Config.RockScale[i];
 
-        // 角色 + 钓具
+        // 床：小屋门前的沙滩上，摆在两名玩家身后（两人出生在 BedPos 床边）
+        var bed = new GameObject("Bed").transform;
+        bed.SetParent(root, false);
+        bed.position = Config.BedPos + Config.BedFromSpawn;
+        BuildNature.Box("BedFrame", bed, bed.position + Vector3.up * Config.BedSize.y * 0.5f, Config.BedSize, woodDark);
+        BuildNature.Box("Bedding", bed, bed.position + Vector3.up * (Config.BedSize.y + 0.05f), new Vector3(Config.BedSize.x - 0.1f, 0.1f, Config.BedSize.z - 0.1f), BuildNature.Mat("M_bedding", Config.Bedding));
+
+        // 角色 + 钓具：Player 与 Player2（返回 Player 的钓鱼状态机）
         var fishing = BuildCharacter.Build(root, wood, woodDark);
 
         var cam = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)) { tag = "MainCamera" };
@@ -92,6 +99,7 @@ public static class BuildScene
         var tod = game.AddComponent<TimeOfDay>(); tod.sun = sun; tod.water = water;
         BuildFx.Build(root, cabin, tod, cam.GetComponent<Camera>());
         game.AddComponent<BaitSelector>().fishing = fishing;
+        game.AddComponent<PlayerManager>();
 
         BuildNature.Build(root, water);
         System.IO.Directory.CreateDirectory("Assets/Scenes");
