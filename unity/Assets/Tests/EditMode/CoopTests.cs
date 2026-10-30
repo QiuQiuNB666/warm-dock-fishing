@@ -125,4 +125,15 @@ public class CoopTests
         Assert.AreEqual(1, FishingStateMachine.Credit(s, 1, 0, f.CaughtCount));
         Assert.AreEqual(new[] { 0, 1 }, new[] { s.Count(ItemType.RawFish, 0), s.Count(ItemType.RawFish, 1) });
     }
+
+    // play-2：小屋门口有鱼才换：鱼 -1、砖 +1；没鱼、或人在钓点，数量都不变
+    [Test] public void TradeAtDoorOnly()
+    {
+        var s = new Stock();
+        Assert.IsFalse(Bricks.Trade(s, 0, Config.DoorPos), "没鱼"); s.Add(ItemType.RawFish, 1, 0);
+        Assert.IsFalse(Bricks.Trade(s, 0, Config.FishSpot), "人在钓点");
+        Assert.AreEqual(new[] { 1, 0 }, new[] { s.Count(ItemType.RawFish, 0), s.brick });
+        Assert.IsTrue(Bricks.Trade(s, 0, Config.DoorPos));
+        Assert.AreEqual(new[] { 0, 1 }, new[] { s.Count(ItemType.RawFish, 0), s.brick });
+    }
 }

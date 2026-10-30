@@ -111,3 +111,4 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 ## 玩法 play-1~4：一天的循环（2026-10-30，用户整份下达）
 - stash「鱼换砖」（iMac、Windows 各一份，内容相同）：只留下对得上的两点，按本轮规则重写：钓上就进该玩家的 Stock 生鱼；新开局不送砖（保留 `TestBricks` 常量，值改成 0，原 stash 是删掉这个常量）。对不上的都丢掉：随处可换、「换到一块砖 / 先钓一条鱼」、左上角改成库存数。两份 stash 都已 drop，没有第二套兑换。
 - play-1：`FishingStateMachine.Credit` 在 CaughtCount 增加时把差额记进这名玩家的生鱼，FishingLogic 不碰 Stock。左上/右上原来的字不动，后面接「生鱼 n」，这几个字用 WarmCJK 单独画。WarmCJK 用第一次下载的思源黑体原文件重新切子集，没有再下载：现在只含暂停菜单、三句底部提示、「生鱼」和 0–9、空格，art-4 时为 stash 预留的字已去掉。
+- play-2：小屋门口 `Config.DoorPos = CabinPos + (1.4, 0, 0)`，取在 +X 门外的石阶上（按 art-1 的小屋模型算：对中后墙在 +1.225，石阶外沿在 +1.575）。人离门口 ≤ InteractRange、手里有生鱼，按 E（P2 小键盘 1）才扣 1 条鱼、加 1 块砖，提示「换得一砖」；没鱼或不在门口时什么都不做，也不弹提示。注意 BedPos 离门口约 1.6 m，所以 P1 站在床边本身就算在门口。底部提示改成 `Bricks.Toast(文字)`，放砖、睡醒共用。

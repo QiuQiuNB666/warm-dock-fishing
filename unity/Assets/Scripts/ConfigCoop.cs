@@ -14,6 +14,8 @@ public static partial class Config
     // 用属性现算：CabinPos 在另一个 partial 文件里，跨文件的静态字段初始化顺序不保证。
     public static Vector3 BedPos => CabinPos + new Vector3(1.2f + 1.6f, 0f, 0.8f);
     public static readonly Vector3 P2BedOffset = new Vector3(0.7f, 0f, 0f);
+    // 小屋门口：门在 +X 墙（blender/model.py 的 SM_cabin 对中后墙在 CabinPos.x + 1.225，石阶外沿 +1.575），取石阶上一点。
+    public static Vector3 DoorPos => CabinPos + new Vector3(1.4f, 0f, 0f);
     public static readonly Vector3 BedFromSpawn = new Vector3(0.35f, 0f, 0.95f);   // 床摆在两人身后（离相机更远的一侧）
     public static readonly Vector3 BedSize = new Vector3(2f, 0.3f, 1f);
     public static readonly Color Bedding = new Color(0.95f, 0.93f, 0.86f);
