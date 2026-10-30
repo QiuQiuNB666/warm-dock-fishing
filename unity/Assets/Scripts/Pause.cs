@@ -7,6 +7,7 @@ public class Pause : MonoBehaviour
     public static bool On { get; private set; }
     static readonly Color Paper = new Color(0.97f, 0.92f, 0.82f, 0.55f);   // 暖纸色，半透明：菜单后面的场景（放下的砖）还看得清
     static readonly Color Ink = new Color(0.36f, 0.24f, 0.15f);
+    public Font font;   // 网页端没有系统字体回退：中文用 Assets/Fonts 的思源黑体子集（WarmCJK）
     bool saved, wasFrozen;
     TimeOfDay tod;
     GUIStyle button, note;
@@ -33,8 +34,8 @@ public class Pause : MonoBehaviour
     {
         if (!On) return;
         GUI.depth = -10;
-        button ??= new GUIStyle(GUI.skin.button) { fontSize = 26 };
-        note ??= new GUIStyle(GUI.skin.label) { fontSize = 26, alignment = TextAnchor.MiddleCenter, normal = { textColor = Ink } };
+        button ??= new GUIStyle(GUI.skin.button) { fontSize = 26, font = font };
+        note ??= new GUIStyle(GUI.skin.label) { fontSize = 26, alignment = TextAnchor.MiddleCenter, normal = { textColor = Ink }, font = font };
         var old = GUI.color;
         GUI.color = Paper;
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);

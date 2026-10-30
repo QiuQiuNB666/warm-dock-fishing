@@ -6,6 +6,7 @@ using UnityEngine;
 public class Bricks : MonoBehaviour
 {
     public Material material;
+    public Font font;   // 网页端没有系统字体回退：「放下一砖」用 Assets/Fonts 的思源黑体子集（WarmCJK）
     PlayerManager players;
     Transform root;
     float toast;
@@ -72,7 +73,7 @@ public class Bricks : MonoBehaviour
     void OnGUI()
     {
         if (toast <= 0f || Pause.On) return;
-        style ??= new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
+        style ??= new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter, font = font };
         GUI.Box(new Rect((Screen.width - 220f) * 0.5f, Screen.height - 110f, 220f, 44f), "放下一砖", style);
     }
 }

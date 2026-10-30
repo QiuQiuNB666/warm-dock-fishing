@@ -94,3 +94,16 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - stage-2：`BedPos` 改为属性——它引用另一个 partial 文件里的 `CabinPos`，跨文件的静态字段初始化顺序不保证。双人相关测试挪到 CoopTests.cs（SystemsTests 超了 150 行），SystemsTests 的钓鱼用例一字未动。`CamFrameMargin = 0.75`。
 - stage-3：PlayerPrefs 在 Windows 存于 `HKCU\Software\Warm\Warm`，值名 `pier.save.v1_h928868525`（djb2-xor 哈希）。坏档：解析失败或 version≠1 → 删键、打一行 `SAVE-DISCARDED`、照常开局。
 - stage-4：游戏里还没有任何获得砖的途径，所以「先 Stock 里有 1 块砖再放」的做法是：**新开局（没有存档）库存给 `TestBricks = 1` 块**，B（P2 小键盘 2）放到面前那一格；存过档就以存档为准。格子＝`floor(x / CellSize)`，砖心在格子中心、离地 BrickSize/2；只认沙滩上、IsWalkable 为真、不在码头上的格子。暂停：`Pause.On` 为真时 PlayerController 不读移动、FishingStateMachine 整个 Update 跳过（不读输入也不走计时）、BaitSelector 不读键；鱼获、张力条、饵按钮、F3、屏外指示点都在暂停时不画；TimeOfDay.frozen 置真、恢复时还原原值。暖纸底是半透明的（α 0.55；0.72 时菜单后面的砖太淡），菜单后面的砖还看得见。中文按钮用 OnGUI 默认字体：桌面 Windows 会回退到系统字体能显示，**网页端没有系统字体回退，中文可能显示成方块**，未验证。
+
+## 美术打磨 art-1~4（2026-10-30，用户整份下达）
+- 流程：`blender/model.py` 程序化低模 → assets_raw/*.glb → `blender/clean.py` → assets/SM_*.fbx → unity/Assets/Art/。clean.py 只改两处：model.py 已按色卡起名的 `M_*` 材质保留原名（角色材质照旧编号成 M_character_N）；回读校验容忍几个 FBX 共用色卡材质名时 Blender 加的 `.001`。STATIC 清单加了 art-3 的 7 件。
+- 坐标：Blender X/Y/Z = Unity X/Z/Y。依据是场景里 SK_character 实例被 BuildCharacter 转了 180°：rig.py 角色面朝 Blender -Y，到 Unity 是 -Z。
+- 颜色：模型的材质名 = 场景里同名的 Config 色材质（M_wood、M_wood_dark、M_coral、M_cliff、M_leaf、M_trunk、M_bedding、M_glow），`BuildScene.Model` 按名字换成 Assets/Art/Materials/ 下的同名材质，颜色只认 Config，没加新色。`BuildNature.Mat` 统一光滑度 0.1（粗糙度 0.9）；模型自带材质（角色）由 `WarmImport.OnPostprocessMaterial` 同样设 0.1。**没做 512 手绘图**：木板缝靠木板侧面的深木色在板缝里露出来，帽子色圈用几何环带换材质。
+- 小屋：山墙朝相机（-Z），两扇窗，窗玻璃用 M_glow，随时段一起亮；窗边有珊瑚色百叶，窗下有花箱。门在 +X 朝床，门洞往里退 0.1 m（不做室内），门口一级石阶。屋顶三排错台瓦（珊瑚色），加屋脊压条、石烟囱、石基。包围盒 x∈[-9.55,-6.45]、z∈[-4.67,-2.33]。BuildFx 原来贴上去的两块发光方块（CabinWindow）删掉，只留窗前那盏点光源。
+- 船：7 个站位放样，空舱，船舷外翻（舷缘比舭部更靠外），一根横座和船头柱；外壳上沿和船尾板刷珊瑚色。吃水不变（BoatPos y=-0.2，底面中心是原点）。礁石：两团凸包拼一块，底面压平，朝下的面删掉。
+- 渔人（rig.py 只换 build_body）：躯干改成前后压扁的棱台，加深色腰带、斜肩。袖子卷起露出小臂，手做成连指手套加拇指，裤脚翻边，靴头往前错出一截。大帽檐半径 0.44 不变，外圈加一道深色环；帽顶两道深色环；脸上两个深色眼点、一个小鼻子（眼点比第一版下移 1.6 cm，不然被帽檐挡住）。6 个材质名不变；帽带环几何不变（P2 在 Unity 里那圈绿色还盖得住）。
+- 小件：树是三层尖冠，随机数抽取顺序不变，所以位置、大小和原来一致；朝向按位置算。另有木箱、木桶。灯笼灯身用 M_glow，配深色角柱和小顶，点光源放在灯身中间。床拆成 SM_bedframe + SM_bedding 两件，名字 BedFrame/Bedding 不变。木板的材质槽 0 是顶面 M_wood，侧面深木色。模型不带碰撞体：`BuildScene.Solid` 按网格包围盒给木板、箱、桶、床补 BoxCollider，树只补树干大小的盒子。测试加了一条：木板碰撞体顶面 = GroundY。删掉不再用的 BuildNature.Cone 和 Generated/cone.asset。
+- 面数（三角形）：小屋 382、船 200、礁石 59、渔人 1108、树 33、木箱 150、木桶 134、灯笼 64、床架 90、床垫 36、木板 10。
+- 网页中文：实测 Unity 网页端 OnGUI 中文完全不显示（按钮和提示框是空的，没有系统字体可以回退）。加了 `Assets/Fonts/WarmCJK-Regular.otf`：思源黑体 CN 子集，只含暂停菜单和底部提示用到的字，另含 stash 里鱼换砖两句的 7 个字，8.6 KB。只赋给 Pause 和 Bricks 的 GUIStyle。OFL 给 "Source" 保留了字体名，子集算改动版，所以内部名字改成 WarmCJK，原许可证放在 WarmCJK-OFL.txt。
+- 工具坑：Windows 系统环境变量 OCIO 指向 Blender 5.2 的配置，Blender 4.5 读不了会报错，不影响导出，渲预览时去掉这个变量。网页端实测发键必须带真实扫描码（`MapVirtualKey`）：浏览器的 `KeyboardEvent.code` 由扫描码算出，keybd_event 扫描码填 0 时 Unity 网页端收不到键；桌面包读虚拟键码，所以以前没出问题。
+- 鱼换砖（上一轮没提交的改动）开工前收进了 git stash（iMac 和 Windows 各一份），没进 art 提交，新包里也没有。

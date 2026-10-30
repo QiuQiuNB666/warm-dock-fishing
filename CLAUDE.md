@@ -18,7 +18,7 @@ C: 只剩约 11 GB：一切安装、缓存、日志、构建都放 D:（临时�
 高角度俯视（俯角 60°，非 90°）低多边形绘本风游戏：角色在延伸至海的木码头上垂钓，海水绿松石色半透明、可见海底沙/珊瑚/水草/鱼。`ref/reference.jpg` 为唯一视觉标准。同一 Unity 工程双端交付：Windows 桌面（窗口/全屏）+ WebGL 网页，内容玩法一致，只允许第 4 节列出的差异。
 
 ## 1. 铁律（违反即回滚）
-1. 分工锁定（v3.2 用户拍板改）：模型由 Blender 代码程序化建模（`blender/model.py`，之后做）；角色骨架 + 简模人偶 + 关键帧动作由 `blender/rig.py` 产出；Blender 负责整理导出；Unity 6 搭世界 + 玩法 + 程序动画；你只编排、写脚本、跑测试。Tripo 不再使用（`scripts/tripo_gen.py` 留存备用）。
+1. 分工锁定（v3.2 用户拍板改）：模型由 Blender 代码程序化建模（`blender/model.py`，art-1/3 已做）；角色骨架 + 简模人偶 + 关键帧动作由 `blender/rig.py` 产出；Blender 负责整理导出；Unity 6 搭世界 + 玩法 + 程序动画；你只编排、写脚本、跑测试。Tripo 不再使用（`scripts/tripo_gen.py` 留存备用）。
 2. 零提问：缺信息按本文默认值执行，并往 docs/decisions.md 追加一行。**唯一例外＝硬停**：以下任一发生，打印一行 `BLOCKED: <全部缺项>` 后停止，不重试、不绕路：Phase 0 前置检查任一项不过；Tripo 返回 401/402/429 或余额不足；同一外部服务连续 2 次 5xx/超时。
 3. 单点修复：测试失败只修第一个失败项再重测；同一点 3 次不过 → `& $GIT reset --hard; & $GIT clean -fd -e assets_raw` 回上一 Phase 换方案（仍单点修改）。
 4. 输出纪律：每 Phase 结束只打印一行 `PHASE-N PASS` 或 `PHASE-N FAIL: <首个原因>`；所有命令输出 `*> D:\tmp\pN.log`，失败只 `tail -20`；禁止打印文件全文、贴大段日志。
@@ -60,7 +60,7 @@ D:\warm\
 ## 5. 文件清单（写死，禁止增删）
 ```
 scripts/tripo_gen.py（停用，留存）   scripts/check_glb.py   scripts/web_check.py
-blender/clean.py   blender/rig.py   blender/model.py（之后做）
+blender/clean.py   blender/rig.py   blender/model.py
 unity/Assets/Editor/: ProjectSetup.cs BuildScene.cs BuildNature.cs BuildPlayer.cs BuildFx.cs BuildCharacter.cs
 unity/Assets/Shaders/Water.shader
 unity/Assets/Scripts/: Game.asmdef Config.cs PlayerController.cs TopDownCamera.cs CharacterRig.cs Tackle.cs
@@ -72,6 +72,8 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   stage-2  unity/Assets/Tests/EditMode/CoopTests.cs（双人相关的纯逻辑测试，SystemsTests 保持只测钓鱼/时段）
   stage-3  unity/Assets/Scripts/: Stock.cs PierSave.cs
   stage-4  unity/Assets/Scripts/: Pause.cs Bricks.cs
+美术打磨（art-1~4）新增：unity/Assets/Art/SM_{tree,crate,barrel,lantern,bedframe,bedding,plank}.fbx（model.py 产出）；
+  unity/Assets/Fonts/WarmCJK-Regular.otf（思源黑体子集，按 OFL 保留字体名条款改名）+ WarmCJK-OFL.txt（原许可证）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 
@@ -80,7 +82,7 @@ Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 as
 仓库已存在（从 MacBook 迁来，含 trial/win 提交）：只补齐第 2 节缺的目录 + decisions.md，再提交。
 测试：`$BLENDER -b --python-expr "import bpy;print('OK')"` 输出 OK。
 
-## Phase 1 — 【之后做】Blender 程序化建模 → assets_raw/*.glb
+## Phase 1 — Blender 程序化建模 → assets_raw/*.glb（art-1 道具、art-3 小件已做，见 decisions.md「美术打磨」）
 
 v3.2：改为 `& $BLENDER -b -P blender/model.py` 用代码搭 rock/boat/cabin（棱角低多边形、平直着色、每色一个纯色材质——URP Lit 不认顶点色），颜色按 decisions.md 文字色卡；角色由 Phase 7 的 rig.py 负责。下表的面上限照旧；下面 Tripo 的描述作废，仅留档。
 
