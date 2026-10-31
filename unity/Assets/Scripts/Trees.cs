@@ -7,6 +7,7 @@ using UnityEngine;
 public class Trees : MonoBehaviour
 {
     public const int Traded = -2;   // Interact 的返回值：这一下换了砖
+    public static readonly bool[] TradedOnce = new bool[KeyMap.Players.Length];   // 这一局各人换过砖没有（Hints 兜底用；只在内存，不进存档）
     public static int[] Hits = new int[0];   // 每棵今天砍了几下，到 ChopHits = 今天已出过木
     Transform[] trees = new Transform[0];
     public static Vector3[] Pos = new Vector3[0];   // 每棵的位置（树号顺序），Hints 只读
@@ -65,7 +66,7 @@ public class Trees : MonoBehaviour
         {
             if (p == null || !p.isActiveAndEnabled || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;
             int k = Interact(Stock.Current, p.playerIndex, p.transform.position, Pos);
-            if (k == Traded) Toast("换得一砖");
+            if (k == Traded) { Toast("换得一砖"); TradedOnce[p.playerIndex] = true; }
             if (k < 0) continue;   // 换了砖，或不在树旁也不在门口
             int h = Chop(Stock.Current, Hits, k);
             if (h == 0) { Toast("这棵明天再砍"); continue; }

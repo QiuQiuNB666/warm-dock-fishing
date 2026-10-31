@@ -89,8 +89,8 @@ public class PlayTests
 
     // loop-3 就近提示：面朝 +Z；树用 Grove（hits 不给就是今天都没砍过）
     static string Hint(Stock s, int player, Vector3 p, int[] hits = null, bool idle = true) =>
-        Hints.Text(s, player, p, Vector3.forward, Grove, hits ?? new int[Grove.Length], idle);
-    static readonly Vector3 P2Bed = Config.BedPos + Config.P2BedOffset, Open = new Vector3(-5.2f, Config.GroundY, -6.3f);   // P2 出生点；床和树之间的空沙地
+        Hints.Text(s, player, p, Vector3.forward, Grove, hits ?? new int[Grove.Length], idle ? FishState.Idle : FishState.Wait, true, true);   // loop-6：两件都算做过 = 兜底关掉，即原规则；idle:false = 等鱼（Wait）；咬钩/收线的提示见 PlayTests2
+    internal static readonly Vector3 P2Bed = Config.BedPos + Config.P2BedOffset, Open = new Vector3(-5.2f, Config.GroundY, -6.3f);   // P2 出生点；床和树之间的空沙地
 
     [Test] public void HintDoorNeedsFish()
     {

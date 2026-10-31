@@ -108,7 +108,9 @@ public class FishingStateMachine : MonoBehaviour
         bool demo = DemoDrives(this);
         if (demo) DemoInput(out down, out hold);
         if (down && (Busy || Config.InFishSpot(transform.position))) Logic.Press();
+        var was = Logic.State;
         Logic.Tick(Time.deltaTime, hold);
+        if (was != FishState.Bite && Logic.State == FishState.Bite) Debug.Log($"EVT bite p{owner} t={Time.timeSinceLevelLoad:0.0}");   // 咬钩那一刻（实玩脚本 until 等它）
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {
             Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");   // 实玩脚本靠这行判断钓上
@@ -138,8 +140,11 @@ public class FishingStateMachine : MonoBehaviour
         GUI.Label(new Rect(x, 10, 300, 22), head);
         GUI.Label(new Rect(x + hw + 6f, 10, 120, 22), fish, cjk);
         if (Logic.State != FishState.Reel) return;
-        GUI.Box(new Rect(bx, 36, 200, 14), GUIContent.none);
-        GUI.Box(new Rect(bx, 36, 200 * Mathf.Clamp01(Logic.Tension), 14), "tension");
-        GUI.Box(new Rect(bx, 54, 200 * Mathf.Clamp01(Logic.Progress), 14), "reel");
+        for (int i = 0; i < 2; i++)   // 张力条、收线条：整条底框 + 按比例填充，WarmCJK 的字画在整条上（不跟着填充宽度被裁掉）
+        {
+            var r = new Rect(bx, 36f + 22f * i, 200f, 18f);
+            GUI.Box(r, GUIContent.none); GUI.Box(new Rect(r.x, r.y, 200f * Mathf.Clamp01(i == 0 ? Logic.Tension : Logic.Progress), r.height), GUIContent.none);
+            GUI.Label(new Rect(r.x + 6f, r.y, 194f, 22f), i == 0 ? "张力" : "收线", cjk);
+        }
     }
 }

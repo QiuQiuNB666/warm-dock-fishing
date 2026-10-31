@@ -57,6 +57,9 @@ public static partial class Config
     // 字色 = 各自的帽子色（HatDot）往白提亮 HintLighten：原色直接放在半透明底上，P2 的帽带绿跟底几乎一样亮
     public const float HintHeight = 2.6f, HintLighten = 0.4f;
     public const int HintFont = 16, HintMax = 2;
+    // loop-6 修补：字条上沿不高于 HintTop（顶部正中「砖 n　木 n」框 Bricks.OnGUI y 8–48 的下沿再留 4 px），头顶放不下就画到脚下 HintFeetGap px；
+    // 兜底（去码头尽头钓鱼 / 拿生鱼回小屋门口换砖）站定 HintStill 秒才画；钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s）
+    public const float HintTop = 52f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;
