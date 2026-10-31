@@ -114,3 +114,7 @@ BLOCKED: Unity 未装 / license 无法检查 / ~/.tripo_key 缺 / 磁盘 13 GB<1
 - play-2：小屋门口 `Config.DoorPos = CabinPos + (1.4, 0, 0)`，取在 +X 门外的石阶上（按 art-1 的小屋模型算：对中后墙在 +1.225，石阶外沿在 +1.575）。人离门口 ≤ InteractRange、手里有生鱼，按 E（P2 小键盘 1）才扣 1 条鱼、加 1 块砖，提示「换得一砖」；没鱼或不在门口时什么都不做，也不弹提示。注意 BedPos 离门口约 1.6 m，所以 P1 站在床边本身就算在门口。底部提示改成 `Bricks.Toast(文字)`，放砖、睡醒共用。
 - play-3：同格往上垒。`Bricks.CanPlace(s, 格, 层)` 的条件是：这层空着、下面一层有砖（第 0 层除外）、层号 < MaxHeight、手里有砖，再加上原来的沙滩、可走、非码头。按 B 时放在 `Height(格)` 那一层，即从下往上连着垒的层数。存档格式不变，BrickRecord 本来就带 layer。两参数的 `TryPlace(s, 格)` 保留，作为放第一层的接口，子阶段 4 的老测试照旧通过。
 - play-4：在床边（离床中心 = 床点 + BedFromSpawn ≤ InteractRange）按 R（P2 小键盘 4），`PierSave.Sleep` 把时间设到 `Morning`（Config.TimeNames 里 morning 那一档，t = 0），两人回床边（P2 偏开 0.7），立刻 `Save()`，底部提示「天亮了」，不退出游戏。自动存档：`Stock.dirty` 连续超过 AutosaveSec（30 秒）就自己存一次，失焦存档照旧。新开局走 `PierSave.NewGame()`，即 TestBricks = 0。熟鱼和布保持 0，H、Ctrl 这轮没做。为了不超 150 行，CoopTests 里原有几条测试收紧了排版，断言一条没改。
+
+## 自迭代环（2026-10-31 起，用户授权：自己设计、自己选题、5 亿 token）
+- 环的规则、选题表、账本、工作手册放在仓库外的 `scripts_local/loop/`（CLAUDE.md §1.8 不许仓库里加文档）。每圈一个提交 `loop-N <slug>`，提交前过一键闸（场景 → EditMode → 桌面包 → 网页包 + web_check）和实玩闸（真键 + 截图 + 读存档），再由独立审查看图看 diff。
+- loop-0：WarmCJK 改成按代码自动切子集（`scripts_local/font/cjk.py`）：收集 Scripts/*.cs 字符串字面量里的全部非 ASCII 字，外加全部可打印 ASCII（提示里的按键字母在网页端也能显示），129 个字形、17.7 KB；一键闸先查缺字，缺字就不开工。另外钓上一条时不论是不是演示都打一行 `CAUGHT p<玩家> <鱼> t=…`（演示模式前面多个 `DEMO-`），实玩脚本靠它判断钓没钓上。

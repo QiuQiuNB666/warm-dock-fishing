@@ -111,7 +111,7 @@ public class FishingStateMachine : MonoBehaviour
         Logic.Tick(Time.deltaTime, hold);
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {
-            if (demo) Debug.Log($"DEMO-CAUGHT {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");
+            Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");   // 实玩脚本靠这行判断钓上
             logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount);
         }
     }
