@@ -297,8 +297,27 @@ def plank():   # 码头木板：Config.DockWidth × (PlankDepth − PlankGap) ×
     return P
 
 
+def campfire():   # 篝火（loop-9）：7 块石头围一圈、3 根交叉的木柴、中间一团火苗；直径约 1.1 m、高 0.7 m（Config.FireSize），原点在底面中心
+    P = Part()
+    for i in range(7):   # 石头：五棱台，高矮、大小、转角各不一样
+        a, h, r = 2 * math.pi * i / 7, (.11, .15, .12, .16, .1, .14, .13)[i], .1 + .012 * (i % 3)
+        cx, cy = .42 * math.cos(a), .42 * math.sin(a)
+        P.tube([ring(5, r, 0, cx, cy, a), ring(5, r * .6, h, cx, cy, a + .3)], ["M_cliff"], top="M_cliff")
+    for k in range(3):   # 木柴：三根方木交叉成星形，一根压一根；截面绕木柴方向逆时针（e1 × 上 = 木柴方向），两头封口
+        a, z, w, L = math.pi * k / 3 + .26, .045 + .08 * k, .045, .34
+        d, e1 = (math.cos(a), math.sin(a)), (-math.sin(a), math.cos(a))
+        ends = [[(t * L * d[0] + u * e1[0], t * L * d[1] + u * e1[1], z + v) for u, v in ((w, w), (-w, w), (-w, -w), (w, -w))] for t in (-1, 1)]
+        P.tube(ends, ["M_trunk"], top="M_trunk")
+        P.face(ends[0][::-1], "M_trunk")
+    P.tube([ring(5, .2, .16), ring(5, .14, .38, rot=.4)], ["M_glow"])   # 火苗：下粗上细、扭一下，尖顶偏一点；底埋在木柴里不封
+    P.cone(ring(5, .14, .38, rot=.4), (.02, -.01, .7), "M_glow")
+    for sx in (-1, 1):   # 两侧各窜一小簇
+        P.cone(ring(4, .07, .2, sx * .15, .02, .3), (sx * .2, .04, .48), "M_glow")
+    return P
+
+
 MODELS = {"cabin": cabin, "boat": boat, "rock": rock, "tree": tree, "crate": crate, "barrel": barrel,
-          "lantern": lantern, "bedframe": bedframe, "bedding": bedding, "plank": plank}
+          "lantern": lantern, "bedframe": bedframe, "bedding": bedding, "plank": plank, "campfire": campfire}
 
 
 def build(name, part):

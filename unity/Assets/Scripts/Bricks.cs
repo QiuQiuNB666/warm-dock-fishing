@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块，进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则砍树）。
+// 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块（loop-9：有熟鱼先用熟鱼，一条换两块），进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则火边烤鱼，否则砍树）。
 // B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着、不在码头入口和门口的保留区、没人站着、放下不切断去码头的路（BrickPath）的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
 // 边长 0.9、陶土色。成功后底部出现 1.5 秒提示；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
@@ -17,12 +17,12 @@ public class Bricks : MonoBehaviour
 
     public static bool AtDoor(Vector3 p) => Vector2.Distance(new Vector2(p.x, p.z), new Vector2(Config.DoorPos.x, Config.DoorPos.z)) <= Config.InteractRange;
 
-    // 人在小屋门口、手里有生鱼：鱼 -1，砖 +1（砖两人共用）。否则什么都不做，返回 false。
+    // 人在小屋门口：有熟鱼先用熟鱼，一条换 CookedBricks 块（loop-9）；没熟鱼一条生鱼换一块（砖两人共用）。都没有、不在门口什么都不做，返回 false。
     public static bool Trade(Stock s, int player, Vector3 pos)
     {
-        if (!AtDoor(pos) || !s.Take(ItemType.RawFish, 1, player)) return false;
-        s.Add(ItemType.Brick);
-        return true;
+        int n = !AtDoor(pos) ? 0 : s.Take(ItemType.CookedFish, 1, player) ? Config.CookedBricks : s.Take(ItemType.RawFish, 1, player) ? 1 : 0;
+        if (n > 0) s.Add(ItemType.Brick, n);
+        return n > 0;
     }
 
     public static Vector2Int Cell(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / Config.CellSize), Mathf.FloorToInt(p.z / Config.CellSize));

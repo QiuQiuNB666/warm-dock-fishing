@@ -76,4 +76,9 @@ public static partial class Config
     // loop-7 修补：放砖不许切断床点和各人去码头入口的路（BrickPath.Open：B 按下时算一次；头顶「B 放砖」每 PathEvery 秒算一次）
     public const float PathEvery = 0.2f;
     public static readonly Color BrickColor = new Color32(0xC4, 0x78, 0x5A, 0xFF);   // 陶土色
+    // loop-9 篝火：床与码头之间的空沙地（离门口 4.6 m、床心 4.4 m、码头入口保留区 2.5 m、最近的树 5.7 m）。人离它 ≤ InteractRange 按 E：
+    // 这人有生鱼、两人共用木 ≥1 → 木 −1、生鱼 −1、熟鱼 +1（Trees.Cook）；门口一条熟鱼换 CookedBricks 块砖（Bricks.Trade，熟鱼优先）
+    public static Vector3 FirePos => new Vector3(-2.5f, GroundY, -5.5f);
+    public static readonly Vector3 FireSize = new Vector3(1.1f, 0.7f, 1.1f);   // SM_campfire 的外框（缺模型时的方块占位；测试里当占地）
+    public const int CookedBricks = 2;
 }

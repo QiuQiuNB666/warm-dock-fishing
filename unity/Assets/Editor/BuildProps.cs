@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// 道具和床的摆放（loop-5 从 BuildScene 拆出，只搬代码）：箱、桶、梯、船、小屋、岩石、床，生成顺序和原来一样。
+// 道具和床的摆放（loop-5 从 BuildScene 拆出，只搬代码）：箱、桶、梯、船、小屋、岩石、床、篝火（loop-9，排最后），生成顺序和原来一样。
 public static class BuildProps
 {
     // BuildScene 搭完码头（木板、桩、FishSpot）就调；返回小屋（BuildFx 挂窗灯、Bricks 拿它挡砖）
@@ -25,6 +25,8 @@ public static class BuildProps
         bed.position = Config.BedPos + Config.BedFromSpawn;
         Solid(BuildScene.Model("SM_bedframe", bed, bed.position, Config.BedSize, woodDark)).name = "BedFrame";
         Solid(BuildScene.Model("SM_bedding", bed, bed.position + Vector3.up * 0.16f, new Vector3(Config.BedSize.x - 0.1f, 0.1f, Config.BedSize.z - 0.1f), BuildNature.Mat("M_bedding", Config.Bedding))).name = "Bedding";   // 床垫放在床板顶
+        // loop-9 篝火：床与码头之间的沙地上（Config.FirePos）；小碰撞体挡人，也自然挡砖（Bricks.Start 把伸出地面的碰撞体都收进 Blockers）；暖光在 BuildFx
+        Solid(BuildScene.Model("SM_campfire", root, Config.FirePos, Config.FireSize, BuildNature.Mat("M_cliff", Config.Cliff))).name = "Campfire";
         return cabin;
     }
 

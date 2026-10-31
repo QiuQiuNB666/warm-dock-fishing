@@ -8,7 +8,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC = ("rock", "boat", "cabin", "tree", "crate", "barrel", "lantern", "bedframe", "bedding", "plank")   # blender/model.py 产出
+STATIC = ("rock", "boat", "cabin", "tree", "crate", "barrel", "lantern", "bedframe", "bedding", "plank", "campfire")   # blender/model.py 产出
 ANIMS = ("idle", "walk", "cast", "wait", "bite", "reel", "catch", "lose")   # blender/rig.py 产出
 LOOPS = ("idle", "walk", "wait", "reel")   # 只有循环动作要求首尾帧一致
 TEX_MAX = 1024

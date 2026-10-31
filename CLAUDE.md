@@ -80,6 +80,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   loop-4  unity/Assets/Tests/EditMode/PlayTests2.cs（玩法纯逻辑测试，PlayTests 满了接着放）
   loop-5  unity/Assets/Editor/BuildProps.cs（道具和床的摆放，从 BuildScene 拆出）  unity/Assets/Scripts/Sleep.cs（床和睡觉，从 PierSave 拆出）
   loop-7  unity/Assets/Scripts/BrickPath.cs（放砖不许切断去码头的路，BFS）  unity/Assets/Tests/EditMode/PlayTests3.cs（玩法纯逻辑测试，PlayTests2 快满了接着放）
+  loop-9  unity/Assets/Tests/EditMode/PlayTests4.cs（篝火烤鱼、熟鱼换砖的纯逻辑测试）  unity/Assets/Art/SM_campfire.fbx（篝火，model.py 产出；assets/SM_campfire.fbx、assets_raw/campfire.glb 同管线）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

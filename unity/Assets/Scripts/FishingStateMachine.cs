@@ -133,7 +133,7 @@ public class FishingStateMachine : MonoBehaviour
     {
         if (Pause.On) return;   // 暂停时让开
         float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
-        string head = $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}", fish = $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}";   // 原来的字不动，后面接「生鱼 n」
+        string head = $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}", fish = $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}　熟鱼 {Stock.Current.Count(ItemType.CookedFish, owner)}";   // 原来的字不动，后面接「生鱼 n　熟鱼 n」（loop-9 加熟鱼）
         cjk ??= new GUIStyle(GUI.skin.label) { font = font, fontSize = 13 };
         float hw = GUI.skin.label.CalcSize(new GUIContent(head)).x;
         GUI.Box(new Rect(x - 4f, 8f, hw + 14f + cjk.CalcSize(new GUIContent(fish)).x, 26f), GUIContent.none);   // 深色半透明底（GUI.skin.box，同顶部「砖 n　木 n」），白天沙地上也看得清

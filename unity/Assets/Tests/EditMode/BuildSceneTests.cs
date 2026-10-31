@@ -120,4 +120,14 @@ public class BuildSceneTests
         Assert.Greater(CharacterRig.Facing(p.transform, Bone("hips"), Bone("rod_mount")), 0.05f);
         Assert.IsTrue(Bone("rod_mount").GetComponentsInChildren<Transform>().Any(t => t.name == "RodTip"));
     }
+
+    // loop-9 篝火：一个、带碰撞体（挡人也挡砖）、上方一盏点光源；离每棵树都比 InteractRange + ChopRange 远（烤鱼和砍树的 E 范围不相交）
+    [Test] public void CampfireClearOfTrees()
+    {
+        var f = One("Campfire");
+        Assert.IsNotNull(f.GetComponent<BoxCollider>(), "碰撞体");
+        Assert.IsNotNull(f.GetComponentInChildren<Light>(), "暖光");
+        foreach (var t in All().Where(g => g.name == "Tree"))
+            Assert.Greater(Vector2.Distance(new Vector2(t.transform.position.x, t.transform.position.z), new Vector2(Config.FirePos.x, Config.FirePos.z)), Config.InteractRange + Config.ChopRange, t.transform.position.ToString());
+    }
 }

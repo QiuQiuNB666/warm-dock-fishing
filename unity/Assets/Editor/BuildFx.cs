@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-// 光影：URP 阴影/点光源档位、码头灯笼 + 小屋窗（夜里亮）、全局后期 Volume（暖色调色 + 柔和 Bloom + 轻暗角）。
+// 光影：URP 阴影/点光源档位、码头灯笼 + 小屋窗 + 篝火（夜里亮）、全局后期 Volume（暖色调色 + 柔和 Bloom + 轻暗角）。
 public static class BuildFx
 {
     const string Settings = "Assets/Settings";
@@ -56,6 +56,10 @@ public static class BuildFx
         // 小屋窗：窗玻璃已做进 SM_cabin（朝相机的 -Z 面，材质 M_glow，随时段一起亮）；这里只在窗前补一盏点光源
         var b = cabin.GetComponentInChildren<Renderer>().bounds;
         lamps.Insert(1, Lamp(cabin.transform, new Vector3(b.center.x, b.center.y, b.min.z - 0.8f) - cabin.transform.position, 6f));   // 网页只留前两盏：最近的灯笼 + 小屋
+
+        // loop-9 篝火：火苗上方 1.2 m 一盏暖光（贴着沙地会照出一块白斑），同灯笼随时段 Glow 亮。排在最后：网页端只亮前 WebLamps 盏（最近的灯笼 + 小屋窗），
+        // 篝火在网页端只靠 M_glow 自发光 + Bloom，点光源总数不超
+        lamps.Add(Lamp(root.Find("Campfire"), Vector3.up * 1.2f, 6f));
 
         tod.glow = glow;
         tod.lamps = lamps.ToArray();

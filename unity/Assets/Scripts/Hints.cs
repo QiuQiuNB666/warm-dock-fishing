@@ -2,10 +2,10 @@ using System.Linq;
 using UnityEngine;
 
 // 就近提示（loop-3）：每名玩家头顶一行小字，只列「现在按了就会成功」的动作，最多 HintMax 个，全角空格隔开。
-// 顺序：换砖 > 砍树 > 睡觉 > 放砖 > 抛竿；E 只列它实际会做的那一个（门口有鱼只列换砖，否则看 Trees.Nearest 那一棵今天还能不能出木）。
+// 顺序：换砖 > 烤鱼 > 砍树 > 睡觉 > 放砖 > 抛竿；E 只列它实际会做的那一个（门口有鱼只列换砖；火边有生鱼、有木列烤鱼（loop-9）；否则看 Trees.Nearest 那一棵今天还能不能出木）。
 // loop-6 教学：钓鱼过程中只在咬钩（提竿）、收线两步提示，抛竿/等鱼/钓上/跑了不画；兜底指路排在现有动作后面补位（不足 HintMax 才露出来）：
-// 没生鱼「去码头尽头钓鱼」、有生鱼「拿生鱼回小屋门口换砖」，这名玩家这一局钓上过一条（FishingLogic.CaughtCount）/ 换过一次砖（Trees.TradedOnce）后
-// 各自不再出（只记在内存），人已在那儿（列了抛竿 / 换砖）不重复，站定 HintStill 秒才画。钓鱼失败（鱼跑了、线断了）在失败那人自己的字条位置说 HintFail 秒。
+// 没鱼「去码头尽头钓鱼」、有生鱼「拿生鱼回小屋门口换砖」（有熟鱼说「拿熟鱼…」，loop-9），这名玩家这一局钓上过一条（FishingLogic.CaughtCount）/ 换过一次砖（Trees.TradedOnce）后
+// 各自不再出（只记在内存），人已在那儿（列了抛竿 / 换砖）不重复，站定 HintStill 秒才画。钓鱼失败（鱼跑了、线断了）在失败那人自己的字条位置说 HintFail 秒（Say；loop-9 烤鱼那句也用它）。
 // 判断全用 Bricks / Trees / PierSave / Config 现成的方法，只读，不改规则。暂停、人在屏幕外都不画；头顶会压到顶部「砖 n　木 n」就画到脚下。
 // 键名同屏幕下方饵按钮（BaitSelector.KeyName：P2 是 Num1/Num2/Num4/Num5），P1 的 Space 叫「空格」。
 public class Hints : MonoBehaviour
@@ -15,13 +15,14 @@ public class Hints : MonoBehaviour
     Camera cam;
     GUIStyle style, ink;
     readonly FishState[] last = new FishState[KeyMap.Players.Length];   // 每人上一帧的钓鱼状态（Update 比对，失败时说一句）
-    readonly string[] fail = new string[KeyMap.Players.Length];   // 每人刚失败的那句：Time.time < failUntil 时代替 Text 画在自己的字条位置（不走底部 Toast：正中会压住落后那人，也不分人）
-    readonly float[] failUntil = new float[KeyMap.Players.Length];
+    static readonly string[] fail = new string[KeyMap.Players.Length];   // 每人刚说的那句（钓鱼失败；loop-9 烤鱼，见 Say）：Time.time < failUntil 时代替 Text 画在自己的字条位置（不走底部 Toast：正中会压住落后那人，也不分人）
+    static readonly float[] failUntil = new float[KeyMap.Players.Length];
     readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计）
     readonly float[] pathAt = new float[KeyMap.Players.Length];   // loop-7 修补：每人面前那格的连通判断（BrickPath.Open，BFS）每 PathEvery 秒算一次，免得每帧算
     readonly bool[] pathOk = new bool[KeyMap.Players.Length];
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
+    public static void Say(int player, string text) { fail[player] = text; failUntil[player] = Time.time + Config.HintFail; }   // 在这人自己的字条位置说 HintFail 秒（钓鱼失败、loop-9 烤鱼）
 
     // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有、在场各人的位置（loop-7，null = 不判人）、
     // 面前那格放下去不切断去码头的路（loop-7 修补：BrickPath.Open 的结果，OnGUI 每 PathEvery 秒算一次传进来；默认 true = 不判）→ 提示文字；不提示返回空串
@@ -32,10 +33,10 @@ public class Hints : MonoBehaviour
         if (fish == FishState.Bite) return $"{f} 提竿！";
         if (fish == FishState.Reel) return $"按住{gap}{f}{gap}收线，张力快满就松手";
         if (fish != FishState.Idle) return "";   // 抛竿、等鱼、钓上、跑了：不提示
-        bool raw = s.Count(ItemType.RawFish, player) > 0;   // 自己手里有生鱼
+        bool raw = s.Count(ItemType.RawFish, player) > 0, cooked = s.Count(ItemType.CookedFish, player) > 0;   // 自己手里有生鱼 / 熟鱼（loop-9）
         int t = Trees.Nearest(trees, p);
         var c = Bricks.Front(p, forward);   // 同 Bricks.Update：面前那一格（按胶囊前沿取），往上垒一层
-        string e = Bricks.AtDoor(p) && raw ? "换砖" : t >= 0 && hits[t] < Config.ChopHits ? "砍树" : null;
+        string e = Bricks.AtDoor(p) && (raw || cooked) ? "换砖" : Trees.NearFire(p) && raw && s.Count(ItemType.Wood) > 0 ? "烤鱼" : t >= 0 && hits[t] < Config.ChopHits ? "砍树" : null;   // 同 Trees.Interact 的顺序
         string cast = Config.InFishSpot(p) ? $"{f} 抛竿" : null;
         var all = new[]
         {
@@ -43,7 +44,7 @@ public class Hints : MonoBehaviour
             Sleep.NearBed(p) ? $"{KeyName(k.R)} 睡觉" : null,
             Bricks.CanPlace(s, c, Bricks.Height(s, c)) && !Bricks.UnderFoot(c, people) && open ? $"{KeyName(k.Build)} 放砖" : null,   // 同 Bricks.Update：面前那格有人、会切断路都不放
             cast,
-            raw ? (traded || e == "换砖" ? null : "拿生鱼回小屋门口换砖") : fished || cast != null ? null : "去码头尽头钓鱼",   // 兜底：排最后补位，人已在那儿不重复
+            raw || cooked ? (traded || e == "换砖" ? null : cooked ? "拿熟鱼回小屋门口换砖" : "拿生鱼回小屋门口换砖") : fished || cast != null ? null : "去码头尽头钓鱼",   // 兜底：排最后补位，人已在那儿不重复
         };
         return string.Join("　", all.Where(a => a != null).Take(Config.HintMax));
     }
@@ -72,7 +73,7 @@ public class Hints : MonoBehaviour
             int i = p.playerIndex; var now = p.fishing.Logic.State;
             still[i] = p.controller != null && p.controller.Speed01 > 0f ? 0f : still[i] + Time.deltaTime;
             string say = Fail(last[i], now);
-            if (say != null) { Debug.Log($"EVT fishfail p{i} {last[i]} t={Time.timeSinceLevelLoad:0.0}"); fail[i] = say; failUntil[i] = Time.time + Config.HintFail; }
+            if (say != null) { Debug.Log($"EVT fishfail p{i} {last[i]} t={Time.timeSinceLevelLoad:0.0}"); Say(i, say); }
             last[i] = now;
         }
     }

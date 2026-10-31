@@ -19,8 +19,8 @@ public static class BrickPath
         return starts.All(f => !Config.OnBeach(Bricks.Center(f, 0)) || Reach(f, wall, c) || !Reach(f, wall, null));   // 码头上的人不算；放了照样走得到，或本来就走不到
     }
 
-    // 从 start 沿能走的格子走得到码头入口吗；cut = 假设放了砖的格子（null = 不假设）
-    static bool Reach(Vector2Int start, HashSet<Vector2Int> wall, Vector2Int? cut)
+    // 从 start 沿能走的格子走得到码头入口吗；cut = 假设放了砖的格子（null = 不假设）。PlayTests4 也拿它验篝火不挡路
+    public static bool Reach(Vector2Int start, HashSet<Vector2Int> wall, Vector2Int? cut)
     {
         var seen = new HashSet<Vector2Int> { start }; var todo = new Queue<Vector2Int>();
         if (start != cut) todo.Enqueue(start);
