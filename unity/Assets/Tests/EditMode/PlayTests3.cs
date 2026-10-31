@@ -31,4 +31,28 @@ public class PlayTests3
         Assert.IsTrue(BrickPath.Open(s, c + Vector2Int.up, at), "没人在里面：空格子围上没事");
         Assert.IsFalse(BrickPath.Open(s, c + Vector2Int.up, new[] { me }), "自己围自己：第四面合口放不了");
     }
+
+    // loop-8：两人浮漂按玩家左右错开（P1 -x、P2 +x），相距 2×CastSpread，都落在码头尽头外的水面上
+    [Test] public void CastTargetsSplitByPlayer()
+    {
+        Vector3 a = Tackle.CastTarget(0), b = Tackle.CastTarget(1);
+        Assert.AreEqual(2f * Config.CastSpread, Vector3.Distance(a, b), 1e-4f, "相距 2×CastSpread");
+        Assert.Less(a.x, b.x, "P1 在左（-x）、P2 在右（+x）");
+        foreach (var p in new[] { a, b })
+        {
+            Assert.AreEqual(Config.SeaY, p.y, 1e-4f, "落在水面");
+            Assert.IsFalse(Config.IsWalkable(p), "不在码头、沙滩上");
+            Assert.Greater(p.z, Config.DockLength, "在码头尽头外的水里");
+        }
+    }
+
+    // loop-8：实玩计划的 teleport 步 = [玩家号, x, z, 朝向°（可省）]；没写的步不摆人
+    [Test] public void ParseTeleportStep()
+    {
+        var s = ScriptedPlay.Parse("[{\"teleport\":[1,0.6,22.8,90]},{\"wait\":100}]");
+        Assert.AreEqual(4, s[0].teleport.Length);
+        Assert.AreEqual(1f, s[0].teleport[0]); Assert.AreEqual(0.6f, s[0].teleport[1], 1e-4f); Assert.AreEqual(22.8f, s[0].teleport[2], 1e-4f); Assert.AreEqual(90f, s[0].teleport[3]);
+        Assert.IsTrue(s[1].teleport == null || s[1].teleport.Length == 0, "没写 teleport 的步不摆人");
+        Assert.AreEqual(100, s[1].wait);
+    }
 }

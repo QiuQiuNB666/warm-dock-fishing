@@ -11,11 +11,12 @@ public class Tackle : MonoBehaviour
     public ParticleSystem splash;
 
     FishState last;
-    Vector3 castFrom, fishFrom, hookPos;
+    Vector3 castFrom, fishFrom, hookPos, target;   // target：自己的浮漂落点（Start 按玩家号定），浮漂、鱼、水花、鱼线终点都跟它
     float splashTimer;
     FishSchool[] schools;
 
-    public static Vector3 CastTarget => new Vector3(Config.FishSpot.x, Config.SeaY, Config.FishSpot.z + Config.CastDistance);
+    // 浮漂落点：钓点前方 CastDistance，按玩家左右错开 CastSpread（P1 往 -x，P2 往 +x），两人并排钓一眼分得清谁的浮漂（loop-8）
+    public static Vector3 CastTarget(int player) => new Vector3(Config.FishSpot.x + (player == 0 ? -1f : 1f) * Config.CastSpread, Config.SeaY, Config.FishSpot.z + Config.CastDistance);
 
     // 抛物线：t=0 起点，t=1 终点，中点比两端连线高 h
     public static Vector3 Arc(Vector3 a, Vector3 b, float t, float h) => Vector3.Lerp(a, b, t) + Vector3.up * (4f * h * t * (1f - t));
@@ -27,7 +28,12 @@ public class Tackle : MonoBehaviour
         return Vector3.Lerp(Vector3.Lerp(a, c, t), Vector3.Lerp(c, b, t), t);
     }
 
-    void Start() { schools = FindObjectsByType<FishSchool>(FindObjectsSortMode.None); }
+    void Start()
+    {
+        schools = FindObjectsByType<FishSchool>(FindObjectsSortMode.None);
+        var ctx = GetComponent<PlayerContext>();
+        target = CastTarget(ctx != null ? ctx.playerIndex : 0);
+    }
 
     void Splash(Vector3 p, int n)
     {
@@ -43,9 +49,9 @@ public class Tackle : MonoBehaviour
         {
             case FishState.Cast: castFrom = rodTip.position; break;
             case FishState.Wait:
-                Splash(CastTarget, 16);   // 落水
-                fishFrom = CastTarget + new Vector3(-3f, -1.5f, 2f);
-                foreach (var sc in schools) if ((sc.transform.position - CastTarget).sqrMagnitude < (fishFrom - CastTarget).sqrMagnitude) fishFrom = sc.transform.position;
+                Splash(target, 16);   // 落水
+                fishFrom = target + new Vector3(-3f, -1.5f, 2f);
+                foreach (var sc in schools) if ((sc.transform.position - target).sqrMagnitude < (fishFrom - target).sqrMagnitude) fishFrom = sc.transform.position;
                 break;
             case FishState.Bite: Splash(b, 24); break;
             case FishState.Caught: hookPos = b; Splash(b, 30); break;
@@ -63,14 +69,14 @@ public class Tackle : MonoBehaviour
         bool wet = s >= FishState.Cast && s <= FishState.Reel;
         bobber.gameObject.SetActive(wet);
         bobber.enabled = s != FishState.Cast;
-        if (s == FishState.Cast) bobber.transform.position = Arc(castFrom, CastTarget, Mathf.Clamp01(t / Config.CastTime), 2.5f);
-        else if (s == FishState.Wait || s == FishState.Bite) { bobber.SetAnchor(CastTarget); bobber.dip = s == FishState.Bite ? 1f : 0f; }
+        if (s == FishState.Cast) bobber.transform.position = Arc(castFrom, target, Mathf.Clamp01(t / Config.CastTime), 2.5f);
+        else if (s == FishState.Wait || s == FishState.Bite) { bobber.SetAnchor(target); bobber.dip = s == FishState.Bite ? 1f : 0f; }
         else if (s == FishState.Reel)
         {
             Vector3 near = transform.position + transform.forward * 1.2f;
             near.y = Config.SeaY;
             Vector3 drag = new Vector3(Mathf.Sin(Time.time * 3.1f) * 1.2f, 0f, 0.8f) * (1f - L.Progress) * (0.5f + L.Tension);   // 鱼往外拖、左右挣
-            bobber.SetAnchor(Vector3.Lerp(CastTarget, near, L.Progress) + drag);
+            bobber.SetAnchor(Vector3.Lerp(target, near, L.Progress) + drag);
             bobber.dip = 0.3f + 0.7f * L.Tension;
             if ((splashTimer -= Time.deltaTime) < 0f) { splashTimer = 0.35f; Splash(bobber.transform.position, 6); }
         }

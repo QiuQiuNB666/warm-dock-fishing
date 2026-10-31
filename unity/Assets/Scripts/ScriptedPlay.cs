@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 
 // -script <plan.json>：游戏自己按计划注入按键、自己截图，锁屏、窗口不在前台也能实玩（loop-2）。
-// 计划和 play_input.ps1 同一套词：wait / down / up / tap / until（press / every / timeout）/ shot，另加 save（PierSave.Save）、quit；
+// 计划和 play_input.ps1 同一套词：wait / down / up / tap / until（press / every / timeout）/ shot，另加 save（PierSave.Save）、quit、teleport（实玩摆人，见 Teleport）；
 // click 不支持，打 SCRIPT-SKIP click 跳过。键码是 Windows 虚拟键，由 Key() 映射成 KeyCode。
 // 脚本模式下 InputManager2P.Held/Pressed 只认脚本自己的状态，真键盘全部忽略
 // （Esc 暂停、T 跳时段、F3 是各自直接读 Input，不走 InputManager2P，脚本也发不了）。
@@ -20,7 +20,7 @@ public class ScriptedPlay : MonoBehaviour
         public int[] down, up;
         public string until, shot;
         public bool save, quit;
-        public float[] click;
+        public float[] click, teleport;   // teleport = [玩家号, x, z, 朝向°（可省）]
     }
 
     [Serializable] class Plan { public Step[] s; }
@@ -89,6 +89,7 @@ public class ScriptedPlay : MonoBehaviour
         {
             var s = steps[i] ?? new Step();
             Debug.Log("SCRIPT-STEP " + i);
+            if (s.teleport != null && s.teleport.Length >= 3) Teleport(s.teleport);
             foreach (int k in s.down ?? new int[0]) Down(Key(k));
             foreach (int k in s.up ?? new int[0]) held.Remove(Key(k));
             if (s.tap != 0) foreach (float w in Tap(Key(s.tap))) yield return w;
@@ -117,6 +118,18 @@ public class ScriptedPlay : MonoBehaviour
         }
         Debug.Log("SCRIPT-DONE");
         Application.Quit();
+    }
+
+    // 实玩摆位：关 CharacterController → 设 XZ（高度不动）→ 开；不改 Sleep.Bed、不改存档（loop-8）
+    static void Teleport(float[] t)
+    {
+        var p = Array.Find(FindObjectsByType<PlayerContext>(FindObjectsSortMode.None), c => c.playerIndex == (int)t[0]);
+        if (p == null) { Debug.Log("SCRIPT-SKIP teleport p" + (int)t[0]); return; }
+        var cc = p.GetComponent<CharacterController>();
+        cc.enabled = false; p.transform.position = new Vector3(t[1], p.transform.position.y, t[2]);
+        if (t.Length > 3) p.transform.rotation = Quaternion.Euler(0f, t[3], 0f);
+        cc.enabled = true;
+        Debug.Log($"SCRIPT-TELEPORT p{(int)t[0]} {t[1]:0.00},{t[2]:0.00}");
     }
 
     void Down(KeyCode k) { if (held.Add(k)) pressed.Add(k); }   // 已经按着的键不再算一次按下

@@ -18,11 +18,12 @@ public static partial class Config
     public static readonly Vector3 FishSpot = new Vector3(0f, GroundY, DockLength - 1.5f);
     public const float FishSpotRadius = 2.5f;
     public const float CastDistance = 4f;   // 浮漂落点：钓点前方
+    public const float CastSpread = 1.2f;   // 两人浮漂沿码头横向左右各偏多少（P1 -x，P2 +x，见 Tackle.CastTarget），并排钓一眼分得清（loop-8）
 
     // 沙滩可走范围
     public static readonly Rect Beach = new Rect(-25f, -18f, 50f, 18f);   // x, z, 宽, 深
     public static readonly Vector3 PlayerStart = new Vector3(0f, GroundY, -3f);
-    public const float PlayerSpeed = 1.8f;
+    public const float PlayerSpeed = 2.4f;   // loop-8：1.8 → 2.4；步频由 PlayerController 按实际速度 / WalkAnimSpeed 缩放，不滑步
     public const float WalkAnimSpeed = 1.72f;   // AN_walk 原速对应的移动速度（blender/rig.py：一个循环 1.44 m / 20 帧）
     public const float RodSegment = 0.55f;      // 鱼竿三节，每节长度
 
