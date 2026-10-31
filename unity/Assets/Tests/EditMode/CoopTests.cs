@@ -140,7 +140,7 @@ public class CoopTests
         string old = PlayerPrefs.HasKey(PierSave.Key) ? PlayerPrefs.GetString(PierSave.Key) : null;
         try
         {
-            Stock.Current = Sample(); PierSave.Sleep(tod, null);
+            Stock.Current = Sample(); Sleep.ToMorning(tod, null);
             Assert.AreEqual(Config.Times[0].Elevation, TimeOfDay.Evaluate(tod.t).Elevation, 1e-4f, "早晨那一档");
             Assert.AreEqual(2, PierSave.Read().bricks.Length, "存档里砖还在");
             Assert.AreEqual(0, Config.TestBricks); Assert.AreEqual(0, PierSave.NewGame().brick, "新档砖数");

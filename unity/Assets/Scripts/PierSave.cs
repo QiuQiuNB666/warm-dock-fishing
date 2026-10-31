@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using UnityEngine;
 
-// 存档：单键 pier.save.v1，只用 JsonUtility。存 version、TimeOfDay.t、床点、砖/木/石、每人的生鱼/熟鱼/布、带层高的砖记录；
+// 存档：单键 pier.save.v1，只用 JsonUtility（床点和睡觉在 Sleep.cs）。存 version、TimeOfDay.t、床点、砖/木/石、每人的生鱼/熟鱼/布、带层高的砖记录；
 // 不存坐标、不存钓鱼中的状态（读档后两人站回床边）。何时存：失焦且有改动、改动攒够 AutosaveSec 秒、床边按 R 睡觉、
 // 暂停菜单「保存并退出」；每次都 PlayerPrefs.Save()。不用 System.IO，也不等 OnApplicationQuit。坏档直接丢弃、照常开局。
 public class PierSave : MonoBehaviour
@@ -21,8 +21,6 @@ public class PierSave : MonoBehaviour
         public BrickRecord[] bricks;
     }
 
-    public static Vector3 Bed = Config.BedPos;   // 当前床点
-    public static float Morning => Array.IndexOf(Config.TimeNames, "morning") / (float)Config.Times.Length;   // Config 里早晨那一档（t = 0）
     public static Stock NewGame() => new Stock { brick = Config.TestBricks };   // 新开局：TestBricks = 0，一块砖都不送
 
     TimeOfDay tod;
@@ -84,23 +82,12 @@ public class PierSave : MonoBehaviour
     public static Data Save(TimeOfDay tod = null)
     {
         tod ??= FindAnyObjectByType<TimeOfDay>();
-        var d = Capture(tod != null ? tod.t : 0f, Bed, Stock.Current, Config.PlayerCount);
+        var d = Capture(tod != null ? tod.t : 0f, Sleep.Bed, Stock.Current, Config.PlayerCount);
         PlayerPrefs.SetString(Key, ToJson(d));
         Stock.Current.dirty = false;
         PlayerPrefs.Save();
         return d;
     }
-
-    // R 睡觉：时间跳到早晨那一档，所有树重置（砍的状态不进存档），两人回床边（P2 偏开 P2BedOffset），立刻存档。不 Application.Quit。
-    public static Data Sleep(TimeOfDay tod, PlayerManager pm)
-    {
-        if (tod != null) tod.t = Morning;
-        Trees.NewDay(); PlaceAtBed(pm);
-        return Save(tod);
-    }
-
-    public static bool NearBed(Vector3 p) =>   // 离床（床点 + BedFromSpawn 就是床的中心）不超过 InteractRange
-        Vector2.Distance(new Vector2(p.x, p.z), new Vector2(Bed.x + Config.BedFromSpawn.x, Bed.z + Config.BedFromSpawn.z)) <= Config.InteractRange;
 
     // 开局：读档（没档、坏档都新开），两人站到床边（P2 偏开 P2BedOffset）
     void Start()
@@ -110,12 +97,12 @@ public class PierSave : MonoBehaviour
         try { d = Read(); } catch (Exception e) { Debug.LogWarning("SAVE-DISCARDED " + e.Message); }
         if (d != null)
         {
-            Stock.Current = Restore(d, out float t, out Bed);
+            Stock.Current = Restore(d, out float t, out Sleep.Bed);
             if (tod != null) tod.t = t;
         }
         else Stock.Current = NewGame();
         if (bricks != null) bricks.Rebuild();   // 按记录把砖摆回去
-        PlaceAtBed(pm);
+        Sleep.PlaceAtBed(pm);
     }
 
     void Update()
@@ -124,26 +111,13 @@ public class PierSave : MonoBehaviour
         if (dirtyFor > Config.AutosaveSec) { Save(tod); dirtyFor = 0f; }   // 改动攒了 30 秒：自己存一次，不等失焦
         if (Pause.On || pm == null) return;
         foreach (var p in pm.players)   // 床边按 R（P2 小键盘 4）
-            if (p != null && p.isActiveAndEnabled && InputManager2P.Pressed(KeyMap.Players[p.playerIndex].R) && NearBed(p.transform.position))
+            if (p != null && p.isActiveAndEnabled && InputManager2P.Pressed(KeyMap.Players[p.playerIndex].R) && Sleep.NearBed(p.transform.position))
             {
-                Sleep(tod, pm);
+                Sleep.ToMorning(tod, pm);
                 if (bricks != null) bricks.Toast("天亮了");
                 break;
             }
     }
 
     void OnApplicationFocus(bool focus) { if (!focus && Stock.Current.dirty) Save(tod); }
-
-    static void PlaceAtBed(PlayerManager pm)
-    {
-        if (pm == null) return;
-        pm.Bind();
-        foreach (var p in pm.players)
-        {
-            var cc = p.GetComponent<CharacterController>();
-            if (cc != null) cc.enabled = false;
-            p.transform.position = Bed + (p.playerIndex == 0 ? Vector3.zero : Config.P2BedOffset);
-            if (cc != null) cc.enabled = true;
-        }
-    }
 }

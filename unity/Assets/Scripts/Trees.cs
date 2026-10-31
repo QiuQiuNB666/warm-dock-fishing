@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEngine;
 
 // 砍树（挂在 Nature 上，子物体里名叫 Tree 的就是树，生成顺序 = 树号）：人离树干（树的 XZ 位置）≤ ChopRange 按 E（P2 小键盘 1）砍一下，
-// 树绕树根晃一下；满 ChopHits 下得 1 木，进两人共用的 Stock.wood。每棵每天只出 1 木，再砍只提示「这棵明天再砍」；睡醒（PierSave.Sleep）全部重置。
+// 树绕树根晃一下；满 ChopHits 下得 1 木，进两人共用的 Stock.wood。每棵每天只出 1 木，再砍只提示「这棵明天再砍」；睡醒（Sleep.ToMorning）全部重置。
 // 砍的状态不进存档。E 同一时刻只做一件事：门口有生鱼先换砖（Bricks.Trade），否则砍够得着的最近一棵，都不是就什么都不做。
 public class Trees : MonoBehaviour
 {

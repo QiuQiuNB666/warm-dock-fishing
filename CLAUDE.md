@@ -78,6 +78,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   loop-2  unity/Assets/Scripts/ScriptedPlay.cs（-script 计划实玩：游戏自己注入按键、截图，锁屏也能测）
   loop-3  unity/Assets/Scripts/Hints.cs（头顶就近提示：现在按了就会成功的动作）
   loop-4  unity/Assets/Tests/EditMode/PlayTests2.cs（玩法纯逻辑测试，PlayTests 满了接着放）
+  loop-5  unity/Assets/Editor/BuildProps.cs（道具和床的摆放，从 BuildScene 拆出）  unity/Assets/Scripts/Sleep.cs（床和睡觉，从 PierSave 拆出）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

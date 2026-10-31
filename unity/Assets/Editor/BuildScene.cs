@@ -62,30 +62,12 @@ public static class BuildScene
         var wood = BuildNature.Mat("M_wood", Config.Wood);
         var woodDark = BuildNature.Mat("M_wood_dark", Config.WoodDark);
         for (int i = 0; i < Config.PlankCount; i++)   // 低模板：顶面木色、侧面深木色（板数、尺寸不变，侧面在板缝里露出来）
-            Solid(Model("SM_plank", dock, new Vector3(0f, Config.GroundY - 0.2f, (i + 0.5f) * Config.PlankDepth), new Vector3(Config.DockWidth, 0.2f, Config.PlankDepth - Config.PlankGap), wood)).name = "Plank";
+            BuildProps.Solid(Model("SM_plank", dock, new Vector3(0f, Config.GroundY - 0.2f, (i + 0.5f) * Config.PlankDepth), new Vector3(Config.DockWidth, 0.2f, Config.PlankDepth - Config.PlankGap), wood)).name = "Plank";
         for (float z = 2f; z < Config.DockLength; z += 4f)
             foreach (float x in new[] { -1f, 1f })
                 BuildNature.Box("Post", dock, new Vector3(x * Config.DockWidth * 0.5f, (Config.GroundY + Config.SeabedY) * 0.5f, z), new Vector3(0.25f, Config.GroundY - Config.SeabedY, 0.25f), woodDark);
         new GameObject("FishSpot").transform.position = Config.FishSpot;
-        foreach (var p in Config.CratePos) Solid(Model("SM_crate", dock, p, Vector3.one * 0.8f, woodDark)).name = "Crate";
-        foreach (var p in Config.BarrelPos) Solid(Model("SM_barrel", dock, p, new Vector3(0.6f, 1f, 0.6f), wood)).name = "Barrel";
-        var ladder = new GameObject("Ladder").transform;
-        ladder.SetParent(dock, false);
-        for (int i = 0; i < 4; i++) BuildNature.Box("Rung", ladder, Config.LadderPos + Vector3.up * (i * 0.3f - 0.2f), new Vector3(0.1f, 0.06f, 0.8f), woodDark);
-
-        // 模型（缺了就用方块占位，场景照样能搭）
-        var boat = Model("SM_boat", root, Config.BoatPos, new Vector3(1.5f, 0.6f, 3.5f), wood);
-        boat.AddComponent<Floater>();
-        var cabin = Model("SM_cabin", root, Config.CabinPos, new Vector3(4f, 3f, 4f), woodDark);
-        for (int i = 0; i < Config.RockPos.Length; i++)
-            Model("SM_rock", root, Config.RockPos[i], Vector3.one, BuildNature.Mat("M_cliff", Config.Cliff)).transform.localScale = Vector3.one * Config.RockScale[i];
-
-        // 床：小屋门前的沙滩上，摆在两名玩家身后（两人出生在 BedPos 床边）
-        var bed = new GameObject("Bed").transform;
-        bed.SetParent(root, false);
-        bed.position = Config.BedPos + Config.BedFromSpawn;
-        Solid(Model("SM_bedframe", bed, bed.position, Config.BedSize, woodDark)).name = "BedFrame";
-        Solid(Model("SM_bedding", bed, bed.position + Vector3.up * 0.16f, new Vector3(Config.BedSize.x - 0.1f, 0.1f, Config.BedSize.z - 0.1f), BuildNature.Mat("M_bedding", Config.Bedding))).name = "Bedding";   // 床垫放在床板顶
+        var cabin = BuildProps.Build(root, dock, wood, woodDark);   // 箱、桶、梯、船、小屋、岩石、床（loop-5 拆到 BuildProps，顺序不变）
 
         // 角色 + 钓具：Player 与 Player2（返回 Player 的钓鱼状态机）
         var fishing = BuildCharacter.Build(root, wood, woodDark);
@@ -123,16 +105,6 @@ public static class BuildScene
     {
         var g = GameObject.CreatePrimitive(t); g.name = name; g.transform.SetParent(parent, false);
         g.transform.position = pos; g.transform.localScale = scale; g.GetComponent<Renderer>().sharedMaterial = m;
-        return g;
-    }
-
-    // 模型不带碰撞体：按网格包围盒补一个 BoxCollider（木板能踩、箱子桶子床挡人，和原来的方块一样）
-    static GameObject Solid(GameObject g)
-    {
-        if (g.GetComponent<Collider>() != null) return g;   // 没有 FBX 时的方块占位自带碰撞体
-        var b = g.GetComponent<MeshFilter>().sharedMesh.bounds;
-        var c = g.AddComponent<BoxCollider>();
-        c.center = b.center; c.size = b.size;
         return g;
     }
 

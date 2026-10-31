@@ -25,7 +25,7 @@ public class Hints : MonoBehaviour
         var all = new[]
         {
             e != null ? $"{KeyName(k.Interact)} {e}" : null,
-            PierSave.NearBed(p) ? $"{KeyName(k.R)} 睡觉" : null,
+            Sleep.NearBed(p) ? $"{KeyName(k.R)} 睡觉" : null,
             Bricks.CanPlace(s, c, Bricks.Height(s, c)) ? $"{KeyName(k.Build)} 放砖" : null,
             Config.InFishSpot(p) ? $"{KeyName(k.Fish)} 抛竿" : null,
         };

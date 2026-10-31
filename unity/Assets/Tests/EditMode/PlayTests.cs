@@ -38,7 +38,7 @@ public class PlayTests
         Assert.AreEqual(1, s.wood);
     }
 
-    // loop-1：R 睡醒（PierSave.Sleep）后所有树重置，又能砍
+    // loop-1：R 睡醒（Sleep.ToMorning）后所有树重置，又能砍
     [Test] public void SleepResetsTrees()
     {
         int[] keepHits = Trees.Hits; Stock keep = Stock.Current;
@@ -46,7 +46,7 @@ public class PlayTests
         try
         {
             Stock.Current = new Stock(); Trees.Hits = new[] { Config.ChopHits, 1 };
-            PierSave.Sleep(null, null);
+            Sleep.ToMorning(null, null);
             Assert.AreEqual(new[] { 0, 0 }, Trees.Hits, "睡醒后所有树重置");
             Assert.AreEqual(1, Trees.Chop(Stock.Current, Trees.Hits, 0), "又能砍了");
         }
