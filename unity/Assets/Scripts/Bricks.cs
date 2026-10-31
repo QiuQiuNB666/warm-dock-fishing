@@ -1,12 +1,14 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块，进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则砍树）。
-// B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
+// B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
 // 边长 0.9、陶土色。成功后底部出现 1.5 秒提示；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
 {
     public Material material;
     public Font font;   // 网页端没有系统字体回退：「放下一砖」用 Assets/Fonts 的思源黑体子集（WarmCJK）
+    public GameObject cabin;   // BuildScene 赋值：小屋占着的格子也不能放砖
     PlayerManager players;
     Transform root;
     float toast;
@@ -37,11 +39,21 @@ public class Bricks : MonoBehaviour
         return h;
     }
 
-    // 只放沙滩上、IsWalkable、不在码头上；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败
+    // 挡砖的 XZ 矩形（loop-4）：床、小屋、树干等场景物体占着的地方，开局由 Start 收集。格子内缩 BlockInset 再判相交，只擦边不算
+    public static readonly List<Rect> Blockers = new List<Rect>();
+    public static void Block(Bounds b) => Blockers.Add(Rect.MinMaxRect(b.min.x, b.min.z, b.max.x, b.max.z));
+    public static bool Occupied(Vector2Int c)
+    {
+        float k = Config.CellSize, e = Config.BlockInset;
+        var r = new Rect(c.x * k + e, c.y * k + e, k - 2f * e, k - 2f * e);
+        return Blockers.Exists(b => b.Overlaps(r));
+    }
+
+    // 只放沙滩上、IsWalkable、不在码头上、没被场景物体占着；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败
     public static bool CanPlace(Stock s, Vector2Int c, int layer)
     {
         Vector3 p = Center(c, 0);
-        if (!Config.OnBeach(p) || !Config.IsWalkable(p) || Config.OnDock(p)) return false;   // 码头上不准放砖
+        if (!Config.OnBeach(p) || !Config.IsWalkable(p) || Config.OnDock(p) || Occupied(c)) return false;   // 码头上不准放砖
         if (s.Count(ItemType.Brick) < 1 || layer < 0 || layer >= Config.MaxHeight) return false;
         return !Has(s, c, layer) && (layer == 0 || Has(s, c, layer - 1));
     }
@@ -76,7 +88,17 @@ public class Bricks : MonoBehaviour
         g.GetComponent<Renderer>().sharedMaterial = material;
     }
 
-    void Start() { players = FindAnyObjectByType<PlayerManager>(); }
+    // 挡砖的矩形 = 场景碰撞体里伸出地面的（顶面高出 GroundY 不到 BlockInset 的是沙滩台地、海底、木板、码头桩，不算）；人（CharacterController）和砖自己不算。
+    // 小屋模型没有碰撞体（这圈不给它加，免得改了人的走位），按它的网格包围盒另算。
+    void Start()
+    {
+        players = FindAnyObjectByType<PlayerManager>();
+        Blockers.Clear();
+        foreach (var c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+            if (!(c is CharacterController) && c.name != "Brick" && c.bounds.max.y > Config.GroundY + Config.BlockInset) Block(c.bounds);
+        if (cabin != null) foreach (var r in cabin.GetComponentsInChildren<Renderer>()) Block(r.bounds);
+        Debug.Log($"BRICK-BLOCKERS {Blockers.Count}");
+    }
 
     void Update()
     {

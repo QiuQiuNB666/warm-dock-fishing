@@ -52,12 +52,16 @@ public static partial class Config
     // 每砍一下树绕树根摆 ChopShakeSec 秒、最大 ChopShakeDeg 度，幅度衰减到 0
     public const float ChopRange = 1.6f, ChopShakeSec = 0.3f, ChopShakeDeg = 5f;
     public const int ChopHits = 3;
-    // loop-3 就近提示：画在角色根节点上方 HintHeight（角色约 1.8 m，帽顶再往上约 0.4 m），HintFont 号字，最多列 HintMax 个动作
-    public const float HintHeight = 2.2f;
+    // loop-3 就近提示：画在角色根节点上方 HintHeight，HintFont 号字，最多列 HintMax 个动作。
+    // loop-4：2.2 → 2.6，俯角 60° 下帽檐远端（半径 0.44 m）投到屏幕上比帽顶还高，2.2 时字条压着帽檐。
+    // 字色 = 各自的帽子色（HatDot）往白提亮 HintLighten：原色直接放在半透明底上，P2 的帽带绿跟底几乎一样亮
+    public const float HintHeight = 2.6f, HintLighten = 0.4f;
     public const int HintFont = 16, HintMax = 2;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;
     public const float BrickSize = 0.9f;
+    // loop-4 挡砖：格子四边各内缩 BlockInset 再和场景物体的 XZ 矩形比（只擦边不算）；碰撞体顶面高出地面不到 BlockInset 的（沙滩台地、木板）不挡
+    public const float BlockInset = 0.05f;
     public static readonly Color BrickColor = new Color32(0xC4, 0x78, 0x5A, 0xFF);   // 陶土色
 }

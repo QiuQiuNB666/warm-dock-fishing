@@ -10,7 +10,7 @@ public class Hints : MonoBehaviour
     public Font font;   // WarmCJK（BuildScene 赋值），网页端才显示得出中文
     PlayerManager players;
     Camera cam;
-    GUIStyle style;
+    GUIStyle style, ink;
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
 
@@ -47,7 +47,8 @@ public class Hints : MonoBehaviour
     {
         if (Pause.On || players == null || cam == null) return;
         style ??= new GUIStyle(GUI.skin.box) { fontSize = Config.HintFont, alignment = TextAnchor.MiddleCenter, font = font };   // 半透明底，同底部提示
-        var rs = new Rect[players.players.Length]; var ts = new string[rs.Length]; int n = 0;
+        if (ink == null) { ink = new GUIStyle(style); ink.normal.background = ink.hover.background = null; }   // 同字号、同内边距，只写字不画底
+        var rs = new Rect[players.players.Length]; var ts = new string[rs.Length]; var who = new int[rs.Length]; int n = 0;
         foreach (var p in players.players)
         {
             if (p == null || !p.isActiveAndEnabled) continue;
@@ -56,10 +57,17 @@ public class Hints : MonoBehaviour
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
             Vector3 h = cam.WorldToScreenPoint(p.transform.position + Vector3.up * Config.HintHeight);
             Vector2 size = style.CalcSize(new GUIContent(text));
-            rs[n] = new Rect(h.x - size.x * 0.5f, Screen.height - h.y - size.y, size.x, size.y); ts[n++] = text;   // 字的底边在头顶点上
+            rs[n] = new Rect(h.x - size.x * 0.5f, Screen.height - h.y - size.y, size.x, size.y); who[n] = p.playerIndex; ts[n++] = text;   // 字的底边在头顶点上
         }
         if (n == 2) Apart(ref rs[0], ref rs[1]);
         for (int i = 0; i < n; i++)   // 夹在屏幕内，不出屏幕
-            GUI.Box(new Rect(Mathf.Clamp(rs[i].x, 0f, Screen.width - rs[i].width), Mathf.Clamp(rs[i].y, 0f, Screen.height - rs[i].height), rs[i].width, rs[i].height), ts[i], style);
+        {
+            var r = new Rect(Mathf.Clamp(rs[i].x, 0f, Screen.width - rs[i].width), Mathf.Clamp(rs[i].y, 0f, Screen.height - rs[i].height), rs[i].width, rs[i].height);
+            GUI.Box(r, GUIContent.none, style); GUI.Box(r, GUIContent.none, style);   // 同一个半透明底叠两遍：形状同顶部「砖 n　木 n」，深一倍，浅色字才读得出
+            ink.normal.textColor = ink.hover.textColor = Color.black;   // 先在右下偏 1 px 画一遍深色字当阴影
+            GUI.Label(new Rect(r.x + 1f, r.y + 1f, r.width, r.height), ts[i], ink);
+            ink.normal.textColor = ink.hover.textColor = Color.Lerp(Config.HatDot[who[i]], Color.white, Config.HintLighten);   // 再画字：帽子色（P1 草帽、P2 帽带，同屏外指示点）往白提亮
+            GUI.Label(r, ts[i], ink);
+        }
     }
 }

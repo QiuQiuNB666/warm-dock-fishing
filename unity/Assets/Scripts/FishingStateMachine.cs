@@ -131,10 +131,12 @@ public class FishingStateMachine : MonoBehaviour
     {
         if (Pause.On) return;   // 暂停时让开
         float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
-        string head = $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}";   // 原来的字不动，后面接「生鱼 n」
-        GUI.Label(new Rect(x, 10, 300, 22), head);
+        string head = $"Fish: {Logic.CaughtCount}   {Logic.State}  {Logic.LastFish}", fish = $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}";   // 原来的字不动，后面接「生鱼 n」
         cjk ??= new GUIStyle(GUI.skin.label) { font = font, fontSize = 13 };
-        GUI.Label(new Rect(x + GUI.skin.label.CalcSize(new GUIContent(head)).x + 6f, 10, 120, 22), $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}", cjk);
+        float hw = GUI.skin.label.CalcSize(new GUIContent(head)).x;
+        GUI.Box(new Rect(x - 4f, 8f, hw + 14f + cjk.CalcSize(new GUIContent(fish)).x, 26f), GUIContent.none);   // 深色半透明底（GUI.skin.box，同顶部「砖 n　木 n」），白天沙地上也看得清
+        GUI.Label(new Rect(x, 10, 300, 22), head);
+        GUI.Label(new Rect(x + hw + 6f, 10, 120, 22), fish, cjk);
         if (Logic.State != FishState.Reel) return;
         GUI.Box(new Rect(bx, 36, 200, 14), GUIContent.none);
         GUI.Box(new Rect(bx, 36, 200 * Mathf.Clamp01(Logic.Tension), 14), "tension");

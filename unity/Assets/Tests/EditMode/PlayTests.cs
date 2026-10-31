@@ -110,17 +110,22 @@ public class PlayTests
 
     [Test] public void HintBed() => Assert.AreEqual("R 睡觉", Hint(new Stock(), 0, Config.BedPos), "床边（也在门口，但没鱼）");
 
-    [Test] public void HintP2Keys()
+    [Test] public void HintP2Keys()   // 照实玩塞上床的矩形（loop-4）：P2 开局面朝 +Z，面前那一格是床，不提示放砖
     {
         var s = new Stock { brick = 1 }; s.Add(ItemType.RawFish, 1, 1);
-        Assert.AreEqual("Num1 换砖　Num2 放砖", Hint(s, 1, Config.DoorPos));
-        Assert.AreEqual("Num4 睡觉　Num2 放砖", Hint(s, 1, P2Bed));
-        Assert.AreEqual("Num5 抛竿", Hint(s, 1, Config.FishSpot));
+        Bricks.Blockers.Clear(); Bricks.Block(new Bounds(Config.BedPos + Config.BedFromSpawn, Config.BedSize));
+        try
+        {
+            Assert.AreEqual("Num1 换砖　Num2 放砖", Hint(s, 1, Config.DoorPos));
+            Assert.AreEqual("Num4 睡觉", Hint(s, 1, P2Bed), "面前是床");
+            Assert.AreEqual("Num5 抛竿", Hint(s, 1, Config.FishSpot));
+        }
+        finally { Bricks.Blockers.Clear(); }   // 清回空表（EditMode 里本来就是空的），别的测试照旧是原规则
     }
 
     [Test] public void HintAtMostTwo()
     {
-        var s = new Stock { brick = 3 }; s.Add(ItemType.RawFish, 2, 0);   // 实玩开局：P1 在床边也在门口，面前是沙滩
+        var s = new Stock { brick = 3 }; s.Add(ItemType.RawFish, 2, 0);   // P1 在床边也在门口；没塞床的矩形，面前那格算能放（实玩里那是床，见 HintP2Keys）
         Assert.AreEqual("E 换砖　R 睡觉", Hint(s, 0, Config.BedPos), "换砖、睡觉、放砖都成：只列前两个");
         Assert.AreEqual("B 放砖", Hint(s, 0, Open));
     }
