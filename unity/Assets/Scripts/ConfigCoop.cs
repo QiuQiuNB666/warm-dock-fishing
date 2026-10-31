@@ -52,6 +52,9 @@ public static partial class Config
     // 每砍一下树绕树根摆 ChopShakeSec 秒、最大 ChopShakeDeg 度，幅度衰减到 0
     public const float ChopRange = 1.6f, ChopShakeSec = 0.3f, ChopShakeDeg = 5f;
     public const int ChopHits = 3;
+    // loop-3 就近提示：画在角色根节点上方 HintHeight（角色约 1.8 m，帽顶再往上约 0.4 m），HintFont 号字，最多列 HintMax 个动作
+    public const float HintHeight = 2.2f;
+    public const int HintFont = 16, HintMax = 2;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;

@@ -86,4 +86,56 @@ public class PlayTests
         Assert.IsTrue(s[4].save && s[4].shot == "a.png" && !s[4].quit);
         Assert.AreEqual(0, ScriptedPlay.Parse("").Length, "空计划");
     }
+
+    // loop-3 就近提示：面朝 +Z；树用 Grove（hits 不给就是今天都没砍过）
+    static string Hint(Stock s, int player, Vector3 p, int[] hits = null, bool idle = true) =>
+        Hints.Text(s, player, p, Vector3.forward, Grove, hits ?? new int[Grove.Length], idle);
+    static readonly Vector3 P2Bed = Config.BedPos + Config.P2BedOffset, Open = new Vector3(-5.2f, Config.GroundY, -6.3f);   // P2 出生点；床和树之间的空沙地
+
+    [Test] public void HintDoorNeedsFish()
+    {
+        var s = new Stock();
+        Assert.AreEqual("", Hint(s, 0, Config.DoorPos), "门口没鱼：E 什么都不做，不提示");
+        s.Add(ItemType.RawFish, 1, 0);
+        Assert.AreEqual("E 换砖", Hint(s, 0, Config.DoorPos));
+        Assert.AreEqual("", Hint(s, 1, Config.DoorPos), "鱼是 P1 的，P2 在门口换不成");
+    }
+
+    [Test] public void HintTreeOnlyWhenFresh()
+    {
+        Vector3 p = Grove[0] + new Vector3(1f, 0f, 0f);
+        Assert.AreEqual("E 砍树", Hint(new Stock(), 0, p));
+        Assert.AreEqual("", Hint(new Stock(), 0, p, new[] { Config.ChopHits, 0 }), "今天出过木的树不提示");
+    }
+
+    [Test] public void HintBed() => Assert.AreEqual("R 睡觉", Hint(new Stock(), 0, Config.BedPos), "床边（也在门口，但没鱼）");
+
+    [Test] public void HintP2Keys()
+    {
+        var s = new Stock { brick = 1 }; s.Add(ItemType.RawFish, 1, 1);
+        Assert.AreEqual("Num1 换砖　Num2 放砖", Hint(s, 1, Config.DoorPos));
+        Assert.AreEqual("Num4 睡觉　Num2 放砖", Hint(s, 1, P2Bed));
+        Assert.AreEqual("Num5 抛竿", Hint(s, 1, Config.FishSpot));
+    }
+
+    [Test] public void HintAtMostTwo()
+    {
+        var s = new Stock { brick = 3 }; s.Add(ItemType.RawFish, 2, 0);   // 实玩开局：P1 在床边也在门口，面前是沙滩
+        Assert.AreEqual("E 换砖　R 睡觉", Hint(s, 0, Config.BedPos), "换砖、睡觉、放砖都成：只列前两个");
+        Assert.AreEqual("B 放砖", Hint(s, 0, Open));
+    }
+
+    [Test] public void HintNothingNear()
+    {
+        Assert.AreEqual("", Hint(new Stock(), 0, Open), "空地、没砖");
+        Assert.AreEqual("空格 抛竿", Hint(new Stock(), 0, Config.FishSpot));
+        Assert.AreEqual("", Hint(new Stock(), 0, Config.FishSpot, idle: false), "钓鱼过程中不提示");
+    }
+
+    [Test] public void HintLabelsApart()   // 两人挨着时两张字条左右分开，左边的还在左边
+    {
+        Rect a = new Rect(150f, 50f, 140f, 26f), b = new Rect(100f, 50f, 120f, 26f);
+        Hints.Apart(ref a, ref b);
+        Assert.IsTrue(!a.Overlaps(b) && b.xMax < a.x, $"{a} {b}");
+    }
 }

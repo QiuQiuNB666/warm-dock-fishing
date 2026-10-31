@@ -24,7 +24,7 @@ public class BaitSelector : MonoBehaviour
         fishing.Logic.Weights = Config.Baits[Index].Weights;
     }
 
-    static string KeyName(KeyCode k) => k.ToString().Replace("Alpha", "").Replace("Keypad", "Num");
+    public static string KeyName(KeyCode k) => k.ToString().Replace("Alpha", "").Replace("Keypad", "Num");
 
     void OnGUI()
     {

@@ -9,7 +9,7 @@ public class Trees : MonoBehaviour
     public const int Traded = -2;   // Interact 的返回值：这一下换了砖
     public static int[] Hits = new int[0];   // 每棵今天砍了几下，到 ChopHits = 今天已出过木
     Transform[] trees = new Transform[0];
-    Vector3[] pos;
+    public static Vector3[] Pos = new Vector3[0];   // 每棵的位置（树号顺序），Hints 只读
     Quaternion[] rest;
     float[] shake;
     PlayerManager players;
@@ -45,7 +45,7 @@ public class Trees : MonoBehaviour
     {
         players = FindAnyObjectByType<PlayerManager>(); bricks = FindAnyObjectByType<Bricks>();
         trees = transform.Cast<Transform>().Where(t => t.name == "Tree").ToArray();
-        pos = trees.Select(t => t.position).ToArray();
+        Pos = trees.Select(t => t.position).ToArray();
         rest = trees.Select(t => t.rotation).ToArray();
         shake = new float[trees.Length];
         Hits = new int[trees.Length];
@@ -64,7 +64,7 @@ public class Trees : MonoBehaviour
         foreach (var p in players.players)
         {
             if (p == null || !p.isActiveAndEnabled || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;
-            int k = Interact(Stock.Current, p.playerIndex, p.transform.position, pos);
+            int k = Interact(Stock.Current, p.playerIndex, p.transform.position, Pos);
             if (k == Traded) Toast("换得一砖");
             if (k < 0) continue;   // 换了砖，或不在树旁也不在门口
             int h = Chop(Stock.Current, Hits, k);

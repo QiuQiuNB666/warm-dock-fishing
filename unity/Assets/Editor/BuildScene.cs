@@ -109,6 +109,7 @@ public static class BuildScene
         var cjk = AssetDatabase.LoadAssetAtPath<Font>(CjkFont);   // 暂停菜单、底部提示
         var bricks = game.AddComponent<Bricks>(); bricks.material = BuildNature.Mat("M_brick", Config.BrickColor); bricks.font = cjk;   // 砖：门口 E 拿鱼换、B 放
         game.AddComponent<Pause>().font = cjk;
+        game.AddComponent<Hints>().font = cjk;   // 头顶就近提示（loop-3）
 
         BuildNature.Build(root, water);
         System.IO.Directory.CreateDirectory("Assets/Scenes");
