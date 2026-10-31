@@ -61,12 +61,12 @@ public class PlayTests2
     [Test] public void HintFallbackOnce()
     {
         var s = new Stock();
-        Assert.AreEqual("去码头尽头钓鱼", Teach(s, 0, Sand), "没鱼");
+        Assert.AreEqual("WASD 走去码头尽头钓鱼", Teach(s, 0, Sand), "没鱼");
         Assert.AreEqual("", Teach(s, 0, Sand, fished: true), "钓上过一条：不再出");
         s.Add(ItemType.RawFish, 1, 0);
         Assert.AreEqual("拿生鱼回小屋门口换砖", Teach(s, 0, Sand, fished: true), "有鱼");
         Assert.AreEqual("", Teach(s, 0, Sand, fished: true, traded: true), "换过砖：不再出");
-        Assert.AreEqual("去码头尽头钓鱼", Teach(s, 1, Sand), "鱼是 P1 的，P2 还是没鱼");
+        Assert.AreEqual("方向键走去码头尽头钓鱼", Teach(s, 1, Sand), "鱼是 P1 的，P2 还是没鱼");
     }
 
     [Test] public void HintActionBeatsFallback()
@@ -79,8 +79,8 @@ public class PlayTests2
     // loop-6 修补：出生点（床边，新开局没砖）还没钓上过 → 睡觉后面补位「去码头尽头钓鱼」
     [Test] public void HintSpawnFallback()
     {
-        Assert.AreEqual("R 睡觉　去码头尽头钓鱼", Teach(new Stock(), 0, Config.BedPos), "P1 出生点");
-        Assert.AreEqual("Num4 睡觉　去码头尽头钓鱼", Teach(new Stock(), 1, PlayTests.P2Bed), "P2 出生点");
+        Assert.AreEqual("R 睡觉　WASD 走去码头尽头钓鱼", Teach(new Stock(), 0, Config.BedPos), "P1 出生点");
+        Assert.AreEqual("Num4 睡觉　方向键走去码头尽头钓鱼", Teach(new Stock(), 1, PlayTests.P2Bed), "P2 出生点");
     }
 
     // loop-7 别把路堵死：码头入口保留区（码头根部朝沙滩 3 格深、比码头左右各宽 1 格）和小屋门口那一格不能放，保留区外紧挨着的一格能放
@@ -128,8 +128,8 @@ public class PlayTests2
     // loop-6 修补：钓鱼状态变化 → 底部说哪句（Hints.Update 每帧拿上一帧比）
     [Test] public void FishFailToast()
     {
-        Assert.AreEqual("鱼跑了，咬钩就按", Hints.Fail(FishState.Bite, FishState.Idle), "咬钩没按");
-        Assert.AreEqual("线断了，快满就松手", Hints.Fail(FishState.Reel, FishState.Lost), "张力过满");
+        Assert.AreEqual("鱼溜走啦，下回一咬钩就按空格", Hints.Fail(FishState.Bite, FishState.Idle), "咬钩没按");
+        Assert.AreEqual("线断啦，张力快满就松手", Hints.Fail(FishState.Reel, FishState.Lost), "张力过满");
         Assert.IsNull(Hints.Fail(FishState.Bite, FishState.Reel), "提了竿");
         Assert.IsNull(Hints.Fail(FishState.Reel, FishState.Caught), "钓上");
         Assert.IsNull(Hints.Fail(FishState.Lost, FishState.Idle), "断线后回空闲");

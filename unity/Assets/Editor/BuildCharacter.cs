@@ -65,7 +65,7 @@ public static class BuildCharacter
         var tip = new GameObject("RodTip").transform;
         tip.SetParent(parent, false); tip.localPosition = Vector3.up * Config.RodSegment;
 
-        var bobber = BuildScene.Prim(PrimitiveType.Sphere, "Bobber" + sfx, root, Config.FishSpot + Vector3.forward * Config.CastDistance, Vector3.one * 0.18f, BuildNature.Mat("M_bobber", Config.Bobber));
+        var bobber = BuildScene.Prim(PrimitiveType.Sphere, "Bobber" + sfx, root, Tackle.CastTarget(index), Vector3.one * 0.18f, BuildNature.Mat("M_bobber", Config.Bobber));
         Object.DestroyImmediate(bobber.GetComponent<Collider>());
         var fish = BuildScene.Prim(PrimitiveType.Capsule, "HookedFish" + sfx, root, Config.FishSpot, new Vector3(0.2f, 0.4f, 0.2f), BuildNature.Mat("M_fish", Config.Fish));
         Object.DestroyImmediate(fish.GetComponent<Collider>());

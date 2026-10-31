@@ -34,12 +34,14 @@ public class Trees : MonoBehaviour
 
     public static bool NearFire(Vector3 p) => Vector2.Distance(new Vector2(p.x, p.z), new Vector2(Config.FirePos.x, Config.FirePos.z)) <= Config.InteractRange;
 
-    // loop-9 火边烤一条：这名玩家有生鱼、两人共用木 ≥1 → 木 −1、他的生鱼 −1、他的熟鱼 +1，返回 Cooked；有鱼没木返回 NoWood（说「没柴了」）；不在火边或没生鱼返回 -1（不说话）
+    // 现在按 E 能烤吗（loop-10 合成一处，Cook 和 Hints 的「E 烤鱼」都看它）：在火边、这名玩家有生鱼、两人共用木 ≥1
+    public static bool CanCook(Stock s, int player, Vector3 p) => NearFire(p) && s.Count(ItemType.RawFish, player) > 0 && s.Count(ItemType.Wood) > 0;
+
+    // loop-9 火边烤一条：CanCook → 木 −1、他的生鱼 −1、他的熟鱼 +1，返回 Cooked；火边有鱼没木返回 NoWood（说「没柴了」）；不在火边或没生鱼返回 -1（不说话）
     public static int Cook(Stock s, int player, Vector3 p)
     {
-        if (!NearFire(p) || s.Count(ItemType.RawFish, player) < 1) return -1;
-        if (!s.Take(ItemType.Wood)) return NoWood;
-        s.Take(ItemType.RawFish, 1, player); s.Add(ItemType.CookedFish, 1, player);
+        if (!CanCook(s, player, p)) return NearFire(p) && s.Count(ItemType.RawFish, player) > 0 ? NoWood : -1;
+        s.Take(ItemType.Wood); s.Take(ItemType.RawFish, 1, player); s.Add(ItemType.CookedFish, 1, player);
         return Cooked;
     }
 
@@ -82,8 +84,8 @@ public class Trees : MonoBehaviour
         foreach (var p in players.players)
         {
             if (p == null || !p.isActiveAndEnabled || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;
-            int i = p.playerIndex, n = Stock.Current.Count(ItemType.CookedFish, i) > 0 ? Config.CookedBricks : 1;   // 门口先用熟鱼：有熟鱼这一下换两砖
-            int k = Interact(Stock.Current, i, p.transform.position, Pos);
+            int i = p.playerIndex, b = Stock.Current.brick;   // 换了几块砖 = 换砖前后的砖数差（熟鱼一条换两砖；loop-10 不再另数一遍熟鱼）
+            int k = Interact(Stock.Current, i, p.transform.position, Pos), n = Stock.Current.brick - b;
             if (k == Traded) { Toast(n > 1 ? "换得两砖" : "换得一砖"); TradedOnce[i] = true; Debug.Log($"EVT trade p{i} bricks={n}"); }
             if (k == Cooked) { Hints.Say(i, "烤好一条"); Debug.Log($"EVT cook p{i}"); }   // loop-9：说在自己的字条位置（同钓鱼失败那句），不走底部 Toast
             if (k == NoWood) Hints.Say(i, "没柴了，去砍树");

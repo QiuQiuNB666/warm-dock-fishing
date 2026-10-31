@@ -140,7 +140,7 @@ public class Bricks : MonoBehaviour
     {
         if (Pause.On) return;   // 暂停时顶部库存和底部提示都不画
         style ??= new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter, font = font };
-        GUI.Box(new Rect((Screen.width - 200f) * 0.5f, 8f, 200f, 40f), $"砖 {Stock.Current.brick}　木 {Stock.Current.wood}", style);   // 顶部正中，左上/右上的字让开
+        GUI.Box(new Rect((Screen.width - 200f) * 0.5f, 8f, 200f, Config.TopBarBottom - 8f), $"砖 {Stock.Current.brick}　木 {Stock.Current.wood}", style);   // 顶部正中，左上/右上的字让开
         if (toast > 0f) GUI.Box(new Rect((Screen.width - 220f) * 0.5f, Screen.height - 110f, 220f, 44f), toastText, style);
     }
 }

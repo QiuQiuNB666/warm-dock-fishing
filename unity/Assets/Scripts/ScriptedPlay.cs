@@ -3,28 +3,14 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-// -script <plan.json>：游戏自己按计划注入按键、自己截图，锁屏、窗口不在前台也能实玩（loop-2）。
-// 计划和 play_input.ps1 同一套词：wait / down / up / tap / until（press / every / timeout）/ shot，另加 save（PierSave.Save）、quit、teleport（实玩摆人，见 Teleport）；
-// click 不支持，打 SCRIPT-SKIP click 跳过。键码是 Windows 虚拟键，由 Key() 映射成 KeyCode。
+// -script <plan.json>：游戏自己按计划注入按键、自己截图，锁屏、窗口不在前台也能实玩（loop-2）。计划的词、解析和键码映射在 ScriptedPlan.cs（同一个类的另一半，loop-10）。
 // 脚本模式下 InputManager2P.Held/Pressed 只认脚本自己的状态，真键盘全部忽略
 // （Esc 暂停、T 跳时段、F3 是各自直接读 Input，不走 InputManager2P，脚本也发不了）。
 // 日志：SCRIPT-READY、每步 SCRIPT-STEP i、SCRIPT-SHOT <路径>、SCRIPT-DONE 后退出；until 超时打 SCRIPT-ABORT until <正则>，退出码 5。
 // 网页端拿不到命令行，什么都不做。
 [DefaultExecutionOrder(-1000)]   // 每帧最先跑：帧首清掉上一帧的「按下」再推进计划，所以 Pressed 只在按下的那一帧为真
-public class ScriptedPlay : MonoBehaviour
+public partial class ScriptedPlay : MonoBehaviour
 {
-    [Serializable]
-    public class Step
-    {
-        public int wait, tap, press, every, timeout;
-        public int[] down, up;
-        public string until, shot;
-        public bool save, quit;
-        public float[] click, teleport;   // teleport = [玩家号, x, z, 朝向°（可省）]
-    }
-
-    [Serializable] class Plan { public Step[] s; }
-
     const float TapSec = 0.08f;   // 同 play_input.ps1：点一下按住 80 ms
     readonly HashSet<KeyCode> held = new HashSet<KeyCode>(), pressed = new HashSet<KeyCode>();
     Step[] steps;
@@ -53,21 +39,6 @@ public class ScriptedPlay : MonoBehaviour
         catch (Exception e) { Abort("plan " + e.Message); }
     }
 
-    // 计划 = 步骤数组；没写的字段取默认值（0 / null / false），空串当空计划
-    public static Step[] Parse(string json) =>
-        string.IsNullOrWhiteSpace(json) ? new Step[0] : JsonUtility.FromJson<Plan>("{\"s\":" + json + "}").s ?? new Step[0];
-
-    // Windows 虚拟键 → KeyCode：字母、主键盘数字、小键盘 0–9、方向键、空格、Esc；别的是 None
-    public static KeyCode Key(int vk) => vk switch
-    {
-        >= 65 and <= 90 => KeyCode.A + (vk - 65),
-        >= 48 and <= 57 => KeyCode.Alpha0 + (vk - 48),
-        >= 96 and <= 105 => KeyCode.Keypad0 + (vk - 96),
-        37 => KeyCode.LeftArrow, 38 => KeyCode.UpArrow, 39 => KeyCode.RightArrow, 40 => KeyCode.DownArrow,
-        32 => KeyCode.Space, 27 => KeyCode.Escape,
-        _ => KeyCode.None,
-    };
-
     void OnLog(string msg, string trace, LogType type)
     {
         if (msg == "SCENE-READY") ready = true;
@@ -89,7 +60,7 @@ public class ScriptedPlay : MonoBehaviour
         {
             var s = steps[i] ?? new Step();
             Debug.Log("SCRIPT-STEP " + i);
-            if (s.teleport != null && s.teleport.Length >= 3) Teleport(s.teleport);
+            if (s.teleport != null && s.teleport.Length > 0) Teleport(s.teleport);
             foreach (int k in s.down ?? new int[0]) Down(Key(k));
             foreach (int k in s.up ?? new int[0]) held.Remove(Key(k));
             if (s.tap != 0) foreach (float w in Tap(Key(s.tap))) yield return w;
@@ -123,8 +94,8 @@ public class ScriptedPlay : MonoBehaviour
     // 实玩摆位：关 CharacterController → 设 XZ（高度不动）→ 开；不改 Sleep.Bed、不改存档（loop-8）
     static void Teleport(float[] t)
     {
-        var p = Array.Find(FindObjectsByType<PlayerContext>(FindObjectsSortMode.None), c => c.playerIndex == (int)t[0]);
-        if (p == null) { Debug.Log("SCRIPT-SKIP teleport p" + (int)t[0]); return; }
+        var p = t.Length < 3 ? null : Array.Find(FindObjectsByType<PlayerContext>(FindObjectsSortMode.None), c => c.playerIndex == (int)t[0]);
+        if (p == null) { Debug.Log("SCRIPT-SKIP teleport" + (t.Length < 3 ? "" : " p" + (int)t[0])); return; }   // 少于 3 个数（loop-10）、没这名玩家：跳过
         var cc = p.GetComponent<CharacterController>();
         cc.enabled = false; p.transform.position = new Vector3(t[1], p.transform.position.y, t[2]);
         if (t.Length > 3) p.transform.rotation = Quaternion.Euler(0f, t[3], 0f);

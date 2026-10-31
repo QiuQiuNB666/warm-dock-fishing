@@ -59,9 +59,10 @@ public static partial class Config
     // 字色 = 各自的帽子色（HatDot）往白提亮 HintLighten：原色直接放在半透明底上，P2 的帽带绿跟底几乎一样亮
     public const float HintHeight = 2.6f, HintLighten = 0.4f;
     public const int HintFont = 16, HintMax = 2;
-    // loop-6 修补：字条上沿不高于 HintTop（顶部正中「砖 n　木 n」框 Bricks.OnGUI y 8–48 的下沿再留 4 px），头顶放不下就画到脚下 HintFeetGap px；
-    // 兜底（去码头尽头钓鱼 / 拿生鱼回小屋门口换砖）站定 HintStill 秒才画；钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s）
-    public const float HintTop = 52f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f;
+    // loop-6 修补：字条上沿不高于 HintTop（顶部正中「砖 n　木 n」框 Bricks.OnGUI y 8–TopBarBottom 的下沿再留 4 px；loop-10 两边共用 TopBarBottom），头顶放不下就画到脚下 HintFeetGap px，
+    // 从脚下换回头顶要比 HintTop 再低 HintBack px（loop-10 回差，免得在边界上来回跳）；兜底（走去码头尽头钓鱼 / 拿鱼去换砖、去烤）站定 HintStill 秒才画；
+    // 钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s）；收线时字条下沿一道 HintBar px 高的张力条，张力 > HintRed 变 Bobber 红（loop-10）
+    public const float TopBarBottom = 48f, HintTop = TopBarBottom + 4f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f, HintBack = 8f, HintBar = 4f, HintRed = 0.8f;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;
@@ -81,4 +82,6 @@ public static partial class Config
     public static Vector3 FirePos => new Vector3(-2.5f, GroundY, -5.5f);
     public static readonly Vector3 FireSize = new Vector3(1.1f, 0.7f, 1.1f);   // SM_campfire 的外框（缺模型时的方块占位；测试里当占地）
     public const int CookedBricks = 2;
+    // loop-10 篝火点光源离地 FireLampY（帽顶以上；原来 1.2 m 比帽顶低，从上往下看的帽顶照不亮）、照 FireLampRange：夜里火边两顶帽子的颜色看得清
+    public const float FireLampY = 2.3f, FireLampRange = 7f;
 }

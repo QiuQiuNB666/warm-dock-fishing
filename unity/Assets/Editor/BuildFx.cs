@@ -57,9 +57,9 @@ public static class BuildFx
         var b = cabin.GetComponentInChildren<Renderer>().bounds;
         lamps.Insert(1, Lamp(cabin.transform, new Vector3(b.center.x, b.center.y, b.min.z - 0.8f) - cabin.transform.position, 6f));   // 网页只留前两盏：最近的灯笼 + 小屋
 
-        // loop-9 篝火：火苗上方 1.2 m 一盏暖光（贴着沙地会照出一块白斑），同灯笼随时段 Glow 亮。排在最后：网页端只亮前 WebLamps 盏（最近的灯笼 + 小屋窗），
-        // 篝火在网页端只靠 M_glow 自发光 + Bloom，点光源总数不超
-        lamps.Add(Lamp(root.Find("Campfire"), Vector3.up * 1.2f, 6f));
+        // loop-9 篝火：火苗上方一盏暖光（贴着沙地会照出一块白斑），同灯笼随时段 Glow 亮；loop-10 抬到帽顶以上 FireLampY、照 FireLampRange，夜里火边两顶帽子的颜色看得清。
+        // 排在最后：网页端只亮前 WebLamps 盏（最近的灯笼 + 小屋窗），篝火没有点光源；网页端运行时也关了 Bloom（GameBootstrap），篝火在网页端只剩 M_glow 自发光
+        lamps.Add(Lamp(root.Find("Campfire"), Vector3.up * Config.FireLampY, Config.FireLampRange));
 
         tod.glow = glow;
         tod.lamps = lamps.ToArray();
