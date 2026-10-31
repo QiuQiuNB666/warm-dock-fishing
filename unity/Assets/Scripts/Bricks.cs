@@ -6,7 +6,7 @@ using UnityEngine;
 // 边长 0.9、陶土色（垒满 MaxHeight 层的顶块用 M_glow = 小灯塔，loop-11）。成功后底部出现 1.5 秒提示，放不下按原因在自己字条位置说一句（BrickWhy，loop-11）；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
 {
-    public Material material, glow;   // 陶土色；glow = M_glow（BuildScene 从 TimeOfDay 拿，亮度跟时段走）：小灯塔的顶块（loop-11）
+    public Material material, glow, glowTop;   // 陶土色；glow = 小灯塔的顶块（loop-11）：BuildScene 先给共用 M_glow，运行时 TimeOfDay.Awake 换成它自己的一份（底色 LampColor、倍数 TowerGlow×TowerSide，loop-12），亮度跟时段走；glowTop = 顶面另贴的那片（倍数 TowerGlow，比侧面亮；没给就整块 glow）
     public Font font;   // 网页端没有系统字体回退：「放下一砖」用 Assets/Fonts 的思源黑体子集（WarmCJK）
     public GameObject cabin;   // BuildScene 赋值：小屋占着的格子也不能放砖
     PlayerManager players;
@@ -99,6 +99,9 @@ public class Bricks : MonoBehaviour
         g.transform.position = Center(new Vector2Int(r.x, r.z), r.layer);
         g.transform.localScale = Vector3.one * Config.BrickSize;
         g.GetComponent<Renderer>().sharedMaterial = Lighthouse(r) ? glow : material;
+        if (!Lighthouse(r) || glowTop == null) return;   // loop-12 小灯塔顶面另贴一层薄片（glowTop 比侧面 glow 亮，夜里看得出顶面和正面之间那条棱）。不用 Quad 图元：它自带 MeshCollider，工程别处没用到，网页端 IL2CPP 剥引擎代码会剥掉这个类，读档 Spawn 时出错
+        var q = new GameObject("top", typeof(MeshFilter), typeof(MeshRenderer)); q.GetComponent<MeshFilter>().sharedMesh = g.GetComponent<MeshFilter>().sharedMesh; q.GetComponent<Renderer>().sharedMaterial = glowTop;   // 方块自己的网格压扁，不带碰撞体、不进 Blockers
+        q.transform.SetParent(g.transform, false); q.transform.localPosition = Vector3.up * 0.505f; q.transform.localScale = new Vector3(1f, 0.01f, 1f);   // 贴在方块顶面上（本地 0.50–0.51）；随方块在 Rebuild 时一起销毁
     }
 
     // 挡砖的矩形 = 场景碰撞体里伸出地面的（顶面高出 GroundY 不到 BlockInset 的是沙滩台地、海底、木板、码头桩，不算）；人（CharacterController）和砖自己不算。
@@ -123,10 +126,10 @@ public class Bricks : MonoBehaviour
             var k = KeyMap.Players[p.playerIndex];
             if (!InputManager2P.Pressed(k.Build)) continue;
             int i = p.playerIndex; var c = Front(p.transform.position, p.transform.forward); var at = players.Positions(); int h = Height(Stock.Current, c);
-            var why = BrickWhy.Of(Stock.Current, c, h, at, BrickPath.Open(Stock.Current, c, at));   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层（loop-11 原因码）
+            var why = BrickWhy.Of(Stock.Current, c, h, at, BrickPath.Open(Stock.Current, c, at), p.transform.position);   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层（loop-11 原因码；loop-12 传自己的位置：只有自己压到砖位说「退后半步再放」）
             var r = why == BrickWhy.Code.Ok ? TryPlace(Stock.Current, c, h) : null;
             Debug.Log($"EVT build p{i} cell={c.x},{c.y} {(r != null ? "ok" : "no " + why)}");   // 实玩查面前是哪一格、放没放、为什么
-            if (r == null) { Hints.Say(i, BrickWhy.Say(why)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置
+            if (r == null) { Hints.Say(i, BrickWhy.Say(why, p.fishing != null ? p.fishing.Logic.State : FishState.Idle)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置；loop-12 正在钓鱼不说（空串，Hints.Say 不记），免得把「空格 提竿！」换掉
             Spawn(r);
             Toast("放下一砖");
             if (Lighthouse(r)) { Hints.Say(i, "垒成一座小灯塔"); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }

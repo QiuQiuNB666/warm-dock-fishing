@@ -102,6 +102,26 @@ public class PlayTests3
         }
     }
 
+    // loop-12 自己的胶囊压到砖位（站在斜对角格的前角、面朝那格）说「退后半步再放」；压到的是别人、或自己和别人都压到，照旧「前面有人」；不传 me 照旧
+    [Test] public void WhySelf()
+    {
+        var s = new Stock { brick = 1 }; var me = new Vector3(Sand.x * Config.CellSize - 0.1f, Config.GroundY, Sand.y * Config.CellSize - 0.1f);   // 西南斜对角那格的东北角
+        Assert.AreEqual(Sand, Bricks.Front(me, new Vector3(1f, 0f, 1f).normalized), "面朝东北，面前就是 Sand");
+        var far = Bricks.Center(Sand, 0) + new Vector3(3f, 0f, 0f);   // 压不到 Sand 的另一个人
+        string Who(Vector3? m, params Vector3[] at) => BrickWhy.Say(BrickWhy.Of(s, Sand, 0, at, true, m));
+        Assert.AreEqual("退后半步再放", Who(me, me, far), "只有自己压到");
+        Assert.AreEqual("前面有人", Who(far, me, far), "压到的是别人");
+        Assert.AreEqual("前面有人", Who(me, me, Bricks.Center(Sand, 0)), "自己和别人都压到");
+        Assert.AreEqual("前面有人", Who(null, me), "不传 me：照旧");
+    }
+
+    // loop-12 正在钓鱼（不是 Idle）按 B 放不下不说：说了会把头顶「空格 提竿！」整句换掉 1.5 s（正好是咬钩窗口）
+    [Test] public void WhyQuietWhileFishing()
+    {
+        foreach (FishState f in System.Enum.GetValues(typeof(FishState)))
+            Assert.AreEqual(f == FishState.Idle ? "这里放不下" : "", BrickWhy.Say(BrickWhy.Code.Blocked, f), $"{f}");
+    }
+
     // loop-11 「拿生鱼去篝火烤」只看烤过没有（Trees.CookedOnce）：换过砖、有生鱼有木、不在火边照样出；烤过一次（也换过砖）兜底都关
     [Test] public void CookHintAfterTrade()
     {

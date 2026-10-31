@@ -23,7 +23,7 @@ public class Hints : MonoBehaviour
     readonly bool[] feet = new bool[KeyMap.Players.Length];   // 每人的字条现在画在脚下吗（loop-10 回差，见 Feet）
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
-    public static void Say(int player, string text) { fail[player] = text; failUntil[player] = Time.time + Config.HintFail; }   // 在这人自己的字条位置说 HintFail 秒（钓鱼失败、loop-9 烤鱼）
+    public static void Say(int player, string text) { if (string.IsNullOrEmpty(text)) return; fail[player] = text; failUntil[player] = Time.time + Config.HintFail; }   // 在这人自己的字条位置说 HintFail 秒（钓鱼失败、loop-9 烤鱼、loop-11 小灯塔 / 放不下砖）；空串不说（loop-12：钓鱼中按 B 放不下给空串，记下来会把字条整个清掉）
 
     // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有、在场各人的位置（loop-7，null = 不判人）、
     // 面前那格放下去不切断去码头的路（loop-7 修补：BrickPath.Open 的结果，OnGUI 每 PathEvery 秒算一次传进来；默认 true = 不判）、这一局烤过鱼没有（loop-11 Trees.CookedOnce）→ 提示文字；不提示返回空串
@@ -101,7 +101,7 @@ public class Hints : MonoBehaviour
             { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
             string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex]);
-            if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚失败：说失败那句（Lost 那 1.2 s 里 Text 本来就是空串；下一次咬钩最早在 CastTime + WaitMin 后，盖不住「提竿」）
+            if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖）：整句换掉 Text。钓鱼中按 B 放不下不说（loop-12，BrickWhy.Say 给空串）；失败那句之后下一次咬钩最早在 CastTime + WaitMin 后——所以「提竿」不会被盖住
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
             Vector3 h = cam.WorldToScreenPoint(p.transform.position + Vector3.up * Config.HintHeight);

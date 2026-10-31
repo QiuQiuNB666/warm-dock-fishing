@@ -86,6 +86,11 @@ public static partial class Config
     public const float FireLampY = 2.3f, FireLampRange = 7f;
     // loop-11 火苗自发光 = LampColor ×（0.05 + Glow × FireGlow），用自己的一份 M_glow（TimeOfDay.fire）：灯笼/窗是 ×4，火苗用 ×4 夜里过曝成一团白星。实玩：只压倍数（0.8、0.3）火苗仍是米白——它自己的点光源照在 M_glow 的奶油底色上；所以火苗那份底色改用 LampColor，倍数取 0.6
     public const float FireGlow = 0.6f;
+    // loop-12 小灯塔顶块同火苗的办法：自己的一份 M_glow（TimeOfDay.towerGlow，底色 LampColor），自发光 = LampColor ×（0.05 + Glow × TowerGlow）。原来共用 ×4，夜里一整块没边的纯白（像 UI 故障）；比火苗略高，夜里读得出暖黄、看得出方块的边
+    public const float TowerGlow = 0.8f;
+    // loop-12 修补：顶面和正面同一份材质，夜里两面只差 3–5 级（红通道顶满），看不出棱。顶面另贴一片 Quad 用 towerGlow，方块本身（侧面）用第二份，发光再 ×TowerSide。
+    // 不靠降 TowerGlow：Gamma 色彩空间、没有色调映射，两面的差只来自漫反射（夜里月光从镜头这侧斜照，正面受光反比顶面多），跟发光倍数无关
+    public const float TowerSide = 0.7f;
     // loop-11 开局两张字条叠在一起时左右分开，中间留 HintGap px（原来 4 px，一眼分不出是两张）
     public const float HintGap = 12f;
 }

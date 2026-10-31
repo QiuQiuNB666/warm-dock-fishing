@@ -8,7 +8,7 @@ public class TimeOfDay : MonoBehaviour
     public Material glow;     // 灯笼/窗户共用的发光材质
     public Light[] lamps;
     public Renderer fire;     // loop-11 篝火：Start 给它的火苗换上自己的一份 M_glow（fireGlow，底色用色卡里的 LampColor），夜里单独压低发光倍数（Config.FireGlow），不再过曝成一团白星
-    Material fireGlow;
+    Material fireGlow, towerGlow, towerSide;   // loop-12 小灯塔顶块同法：底色都是 LampColor，towerGlow 顶面（夜里倍数 Config.TowerGlow）、towerSide 侧面（再 ×Config.TowerSide），Awake 交给 Bricks.glowTop / Bricks.glow，不再用共用 M_glow 的 ×4（夜里一整块没边的纯白）
     public float t;   // 0..1 一天；0=晨 0.25=午 0.5=昏 0.75=夜
     public bool frozen;   // 截图模式：不随时间走
 
@@ -29,6 +29,14 @@ public class TimeOfDay : MonoBehaviour
     {
         int n = Config.Times.Length;
         return Mathf.Repeat((Mathf.Floor(Mathf.Repeat(t01, 1f) * n + 1e-4f) + 1f) / n, 1f);
+    }
+
+    void Awake()   // loop-12：赶在 PierSave.Start 读档 Rebuild（Spawn 小灯塔顶块）之前把这两份材质交给 Bricks
+    {
+        var b = FindAnyObjectByType<Bricks>();
+        if (b == null || glow == null) return;
+        b.glowTop = towerGlow = new Material(glow) { color = Config.LampColor };
+        b.glow = towerSide = new Material(towerGlow);
     }
 
     void Start()
@@ -61,6 +69,7 @@ public class TimeOfDay : MonoBehaviour
         if (water != null) water.SetColor(ColorId, s.Water);
         if (glow != null) glow.SetColor(EmissionId, Config.LampColor * (0.05f + s.Glow * 4f));
         if (fireGlow != null) fireGlow.SetColor(EmissionId, Config.LampColor * (0.05f + s.Glow * Config.FireGlow));   // 火苗：同色同底，只是夜里倍数小
+        if (towerGlow != null) { var e = Config.LampColor * (0.05f + s.Glow * Config.TowerGlow); towerGlow.SetColor(EmissionId, e); towerSide.SetColor(EmissionId, e * Config.TowerSide); }   // 小灯塔顶块：同火苗的办法，倍数单独一个；侧面再 ×TowerSide，顶面比正面亮、看得出棱（loop-12）
         if (lamps != null) foreach (var l in lamps) if (l != null) l.intensity = s.Glow * 3f;
     }
 }
