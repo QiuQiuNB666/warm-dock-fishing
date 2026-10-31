@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块，进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则砍树）。
-// B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
+// B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着、不在码头入口和门口的保留区、没人站着、放下不切断去码头的路（BrickPath）的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
 // 边长 0.9、陶土色。成功后底部出现 1.5 秒提示；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
 {
@@ -27,6 +27,10 @@ public class Bricks : MonoBehaviour
 
     public static Vector2Int Cell(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / Config.CellSize), Mathf.FloorToInt(p.z / Config.CellSize));
 
+    // loop-7 修补：「面前那格」按胶囊前沿取，往前 CellSize + PlayerRadius − BlockInset（1.3 m）：人朝正方向时自己的胶囊压不到这格的砖位
+    //（原来往前 1 m，人站在自己格子靠前 0.3 m 里时面前那格判成有人）。同格往上垒照旧：被面前的砖挡住时人离格子前沿至少 0.3 m
+    public static Vector2Int Front(Vector3 p, Vector3 forward) => Cell(p + forward * (Config.CellSize + Config.PlayerRadius - Config.BlockInset));
+
     public static Vector3 Center(Vector2Int c, int layer) =>
         new Vector3((c.x + 0.5f) * Config.CellSize, Config.GroundY + (layer + 0.5f) * Config.BrickSize, (c.y + 0.5f) * Config.CellSize);
 
@@ -42,18 +46,30 @@ public class Bricks : MonoBehaviour
     // 挡砖的 XZ 矩形（loop-4）：床、小屋、树干等场景物体占着的地方，开局由 Start 收集。格子内缩 BlockInset 再判相交，只擦边不算
     public static readonly List<Rect> Blockers = new List<Rect>();
     public static void Block(Bounds b) => Blockers.Add(Rect.MinMaxRect(b.min.x, b.min.z, b.max.x, b.max.z));
-    public static bool Occupied(Vector2Int c)
+    public static bool Occupied(Vector2Int c) => Blockers.Exists(b => b.Overlaps(Inset(c)));
+    public static Rect Inset(Vector2Int c)   // 格子四边各内缩 BlockInset（0.05 = 边长 BrickSize 的砖在格子里居中留的边，即砖的占地）
     {
         float k = Config.CellSize, e = Config.BlockInset;
-        var r = new Rect(c.x * k + e, c.y * k + e, k - 2f * e, k - 2f * e);
-        return Blockers.Exists(b => b.Overlaps(r));
+        return new Rect(c.x * k + e, c.y * k + e, k - 2f * e, k - 2f * e);
     }
 
-    // 只放沙滩上、IsWalkable、不在码头上、没被场景物体占着；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败
+    // loop-7 保留：码头入口（Config.DockEntry）和小屋门口那一格永远不放砖，去码头、进门的路堵不死。不进 Blockers（开局 Start 和测试都会清它）；老档里已放在这儿的砖照样读回
+    public static bool Reserved(Vector2Int c) => c == Cell(Config.DoorPos) || Config.DockEntry.Overlaps(Inset(c));
+
+    // loop-7 砖不砸人：有人站着的格子不放——人的 XZ 位置所在格，和胶囊（半径 PlayerRadius）压进砖位的相邻格（所在格离砖位不到 0.08 m，同一个判据就包含了）。
+    // people = 在场各人的位置（含放砖的自己），null = 没人
+    public static bool UnderFoot(Vector2Int c, Vector3[] people)
+    {
+        var r = Inset(c);
+        return people != null && System.Array.Exists(people, q =>
+            new Vector2(Mathf.Clamp(q.x, r.xMin, r.xMax) - q.x, Mathf.Clamp(q.z, r.yMin, r.yMax) - q.z).sqrMagnitude < Config.PlayerRadius * Config.PlayerRadius);
+    }
+
+    // 只放沙滩上、IsWalkable、不在码头上、没被场景物体占着、不在保留区；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败
     public static bool CanPlace(Stock s, Vector2Int c, int layer)
     {
         Vector3 p = Center(c, 0);
-        if (!Config.OnBeach(p) || !Config.IsWalkable(p) || Config.OnDock(p) || Occupied(c)) return false;   // 码头上不准放砖
+        if (!Config.OnBeach(p) || !Config.IsWalkable(p) || Config.OnDock(p) || Occupied(c) || Reserved(c)) return false;   // 码头上不准放砖
         if (s.Count(ItemType.Brick) < 1 || layer < 0 || layer >= Config.MaxHeight) return false;
         return !Has(s, c, layer) && (layer == 0 || Has(s, c, layer - 1));
     }
@@ -109,8 +125,9 @@ public class Bricks : MonoBehaviour
             if (p == null || !p.isActiveAndEnabled) continue;
             var k = KeyMap.Players[p.playerIndex];
             if (!InputManager2P.Pressed(k.Build)) continue;
-            var c = Cell(p.transform.position + p.transform.forward * Config.CellSize);
-            var r = TryPlace(Stock.Current, c, Height(Stock.Current, c));   // 同格往上垒一层
+            var c = Front(p.transform.position, p.transform.forward); var at = players.Positions();
+            var r = UnderFoot(c, at) || !BrickPath.Open(Stock.Current, c, at) ? null : TryPlace(Stock.Current, c, Height(Stock.Current, c));   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层
+            Debug.Log($"EVT build p{p.playerIndex} cell={c.x},{c.y} {(r != null ? "ok" : "no")}");   // 实玩查面前是哪一格、放没放
             if (r == null) continue;
             Spawn(r);
             Toast("放下一砖");

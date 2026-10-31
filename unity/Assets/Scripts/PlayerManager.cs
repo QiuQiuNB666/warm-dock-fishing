@@ -10,6 +10,8 @@ public class PlayerManager : MonoBehaviour
 
     void Awake() => Bind();
 
+    public Vector3[] Positions() => players.Where(p => p != null && p.isActiveAndEnabled).Select(p => p.transform.position).ToArray();   // 在场各人的位置（loop-7：Bricks 放砖、Hints 判面前有没有人）
+
     public void Bind()
     {
         if (Bound) return;

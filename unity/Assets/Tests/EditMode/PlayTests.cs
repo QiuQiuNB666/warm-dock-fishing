@@ -13,7 +13,7 @@ public class PlayTests
         Vector3 far = Grove[0] + new Vector3(Config.ChopRange + 0.05f, 0f, 0f);
         Assert.AreEqual(-1, Trees.Nearest(Grove, far), "差 5 cm 够不着");
         Assert.AreEqual(-1, Trees.Interact(s, 0, far, Grove), "够不着、也不在门口：E 什么都不做");
-        Assert.AreEqual(0, Trees.Nearest(Grove, Grove[0] + new Vector3(0f, 3f, Config.ChopRange - 0.05f)), "高度不算");
+        Assert.AreEqual(0, Trees.Nearest(Grove, Grove[0] + new Vector3(0f, 3f, 0.05f - Config.ChopRange)), "高度不算");   // loop-7：站树南侧（北侧不算）
         Assert.AreEqual(1, Trees.Nearest(Grove, Grove[1] + new Vector3(1.1f, 0f, 0f)), "两棵都够得着：最近的");
         Assert.AreEqual(new[] { 0, 0 }, new[] { s.wood, s.brick });
     }
@@ -58,10 +58,10 @@ public class PlayTests
         }
     }
 
-    // loop-1：E 同一时刻只做一件事：门口有鱼先换砖，没鱼才砍树（场景里门口 6 m 内没有树，这里假放一棵，只看先后）
+    // loop-1：E 同一时刻只做一件事：门口有鱼先换砖，没鱼才砍树（场景里门口 6 m 内没有树，这里假放一棵，只看先后；loop-7 起放门口北边，人在树南侧才砍得到）
     [Test] public void DoorTradeBeforeChop()
     {
-        var s = new Stock(); var trees = new[] { Config.DoorPos + new Vector3(0f, 0f, -1f) };
+        var s = new Stock(); var trees = new[] { Config.DoorPos + new Vector3(0f, 0f, 1f) };
         Assert.AreEqual(0, Trees.Interact(s, 0, Config.DoorPos, trees), "没鱼：砍树");
         s.Add(ItemType.RawFish, 1, 0);
         Assert.AreEqual(Trees.Traded, Trees.Interact(s, 0, Config.DoorPos, trees), "有鱼：先换砖");

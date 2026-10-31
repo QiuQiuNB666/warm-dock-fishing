@@ -18,11 +18,14 @@ public class Hints : MonoBehaviour
     readonly string[] fail = new string[KeyMap.Players.Length];   // 每人刚失败的那句：Time.time < failUntil 时代替 Text 画在自己的字条位置（不走底部 Toast：正中会压住落后那人，也不分人）
     readonly float[] failUntil = new float[KeyMap.Players.Length];
     readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计）
+    readonly float[] pathAt = new float[KeyMap.Players.Length];   // loop-7 修补：每人面前那格的连通判断（BrickPath.Open，BFS）每 PathEvery 秒算一次，免得每帧算
+    readonly bool[] pathOk = new bool[KeyMap.Players.Length];
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
 
-    // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有 → 提示文字；不提示返回空串
-    public static string Text(Stock s, int player, Vector3 p, Vector3 forward, Vector3[] trees, int[] hits, FishState fish, bool fished, bool traded)
+    // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有、在场各人的位置（loop-7，null = 不判人）、
+    // 面前那格放下去不切断去码头的路（loop-7 修补：BrickPath.Open 的结果，OnGUI 每 PathEvery 秒算一次传进来；默认 true = 不判）→ 提示文字；不提示返回空串
+    public static string Text(Stock s, int player, Vector3 p, Vector3 forward, Vector3[] trees, int[] hits, FishState fish, bool fished, bool traded, Vector3[] people = null, bool open = true)
     {
         var k = KeyMap.Players[player];
         string f = KeyName(k.Fish), gap = k.Fish == KeyCode.Space ? "" : " ";   // 「空格」直接连着中文，Num5 两边空一格
@@ -31,14 +34,14 @@ public class Hints : MonoBehaviour
         if (fish != FishState.Idle) return "";   // 抛竿、等鱼、钓上、跑了：不提示
         bool raw = s.Count(ItemType.RawFish, player) > 0;   // 自己手里有生鱼
         int t = Trees.Nearest(trees, p);
-        var c = Bricks.Cell(p + forward * Config.CellSize);   // 同 Bricks.Update：面前那一格，往上垒一层
+        var c = Bricks.Front(p, forward);   // 同 Bricks.Update：面前那一格（按胶囊前沿取），往上垒一层
         string e = Bricks.AtDoor(p) && raw ? "换砖" : t >= 0 && hits[t] < Config.ChopHits ? "砍树" : null;
         string cast = Config.InFishSpot(p) ? $"{f} 抛竿" : null;
         var all = new[]
         {
             e != null ? $"{KeyName(k.Interact)} {e}" : null,
             Sleep.NearBed(p) ? $"{KeyName(k.R)} 睡觉" : null,
-            Bricks.CanPlace(s, c, Bricks.Height(s, c)) ? $"{KeyName(k.Build)} 放砖" : null,
+            Bricks.CanPlace(s, c, Bricks.Height(s, c)) && !Bricks.UnderFoot(c, people) && open ? $"{KeyName(k.Build)} 放砖" : null,   // 同 Bricks.Update：面前那格有人、会切断路都不放
             cast,
             raw ? (traded || e == "换砖" ? null : "拿生鱼回小屋门口换砖") : fished || cast != null ? null : "去码头尽头钓鱼",   // 兜底：排最后补位，人已在那儿不重复
         };
@@ -79,13 +82,15 @@ public class Hints : MonoBehaviour
         if (Pause.On || players == null || cam == null) return;
         style ??= new GUIStyle(GUI.skin.box) { fontSize = Config.HintFont, alignment = TextAnchor.MiddleCenter, font = font };   // 半透明底，同底部提示
         if (ink == null) { ink = new GUIStyle(style); ink.normal.background = ink.hover.background = null; }   // 同字号、同内边距，只写字不画底
-        var rs = new Rect[players.players.Length]; var ts = new string[rs.Length]; var who = new int[rs.Length]; int n = 0;
+        var rs = new Rect[players.players.Length]; var ts = new string[rs.Length]; var who = new int[rs.Length]; int n = 0; var at = players.Positions();
         foreach (var p in players.players)
         {
             if (p == null || !p.isActiveAndEnabled) continue;
             var f = p.fishing != null ? p.fishing.Logic : null;   // 钓鱼状态；CaughtCount > 0 = 这一局钓上过
+            if (Stock.Current.brick > 0 && Time.time >= pathAt[p.playerIndex])   // 手里有砖才算（没砖 CanPlace 本来就不过）
+            { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
-            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex]);
+            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex]);
             if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚失败：说失败那句（Lost 那 1.2 s 里 Text 本来就是空串；下一次咬钩最早在 CastTime + WaitMin 后，盖不住「提竿」）
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;

@@ -51,6 +51,8 @@ public static partial class Config
     // loop-1 砍树：人离树干（树的 XZ 位置）≤ ChopRange 按 E 砍一下（树干碰撞盒挡着人，站旁边要够得着），满 ChopHits 下得 1 木；
     // 每砍一下树绕树根摆 ChopShakeSec 秒、最大 ChopShakeDeg 度，幅度衰减到 0
     public const float ChopRange = 1.6f, ChopShakeSec = 0.3f, ChopShakeDeg = 5f;
+    // loop-7 只认站在树南侧（离相机近的一侧）的人：人的 z ≤ 树干 z + ChopSouth，人不会钻进树冠里看不见
+    public const float ChopSouth = 0.3f;
     public const int ChopHits = 3;
     // loop-3 就近提示：画在角色根节点上方 HintHeight，HintFont 号字，最多列 HintMax 个动作。
     // loop-4：2.2 → 2.6，俯角 60° 下帽檐远端（半径 0.44 m）投到屏幕上比帽顶还高，2.2 时字条压着帽檐。
@@ -66,5 +68,12 @@ public static partial class Config
     public const float BrickSize = 0.9f;
     // loop-4 挡砖：格子四边各内缩 BlockInset 再和场景物体的 XZ 矩形比（只擦边不算）；碰撞体顶面高出地面不到 BlockInset 的（沙滩台地、木板）不挡
     public const float BlockInset = 0.05f;
+    // loop-7 别把路堵死：码头根部（z = DockMid.z − DockLength/2）朝沙滩 DockEntryDepth 格深、比码头左右各宽 1 格的矩形不放砖（Bricks.Reserved，小屋门口那一格也保留）。
+    // 人的胶囊半径 PlayerRadius（BuildCharacter 的 CharacterController 也用它）：人站的格子和胶囊压进砖位的相邻格不放砖（Bricks.UnderFoot）
+    public const int DockEntryDepth = 3;
+    public static Rect DockEntry => new Rect(DockMid.x - DockWidth * 0.5f - CellSize, DockMid.z - DockLength * 0.5f - DockEntryDepth * CellSize, DockWidth + 2f * CellSize, DockEntryDepth * CellSize);
+    public const float PlayerRadius = 0.35f;
+    // loop-7 修补：放砖不许切断床点和各人去码头入口的路（BrickPath.Open：B 按下时算一次；头顶「B 放砖」每 PathEvery 秒算一次）
+    public const float PathEvery = 0.2f;
     public static readonly Color BrickColor = new Color32(0xC4, 0x78, 0x5A, 0xFF);   // 陶土色
 }

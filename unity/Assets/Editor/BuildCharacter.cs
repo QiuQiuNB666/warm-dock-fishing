@@ -27,7 +27,7 @@ public static class BuildCharacter
         var player = new GameObject("Player" + sfx);
         player.transform.position = pos;
         var cc = player.AddComponent<CharacterController>();
-        cc.center = Vector3.up * 0.9f; cc.height = 1.8f; cc.radius = 0.35f;
+        cc.center = Vector3.up * 0.9f; cc.height = 1.8f; cc.radius = Config.PlayerRadius;
         var body = BuildScene.Model("SK_character", player.transform, pos, new Vector3(0.7f, 1.8f, 0.7f), wood);
         var anim = body.GetComponent<Animator>();
         foreach (var col in body.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(col);   // 别和 CharacterController 打架

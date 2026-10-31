@@ -32,7 +32,7 @@ public class PlayTests2
         try
         {
             foreach (var p in new[] { Config.BedPos, p2 })
-                Assert.IsFalse(Bricks.CanPlace(s, Bricks.Cell(p + Vector3.forward * Config.CellSize), 0), $"{p} 面前是床");
+                Assert.IsFalse(Bricks.CanPlace(s, Bricks.Front(p, Vector3.forward), 0), $"{p} 面前是床");
             Assert.AreEqual("Num4 睡觉", Hint(1, p2));
             Assert.AreEqual("B 放砖", Hint(0, open));
         }
@@ -81,6 +81,48 @@ public class PlayTests2
     {
         Assert.AreEqual("R 睡觉　去码头尽头钓鱼", Teach(new Stock(), 0, Config.BedPos), "P1 出生点");
         Assert.AreEqual("Num4 睡觉　去码头尽头钓鱼", Teach(new Stock(), 1, PlayTests.P2Bed), "P2 出生点");
+    }
+
+    // loop-7 别把路堵死：码头入口保留区（码头根部朝沙滩 3 格深、比码头左右各宽 1 格）和小屋门口那一格不能放，保留区外紧挨着的一格能放
+    //（修补：列的都是只被保留区挡住的格子；(0,-1) 格心在码头上，原规则就挡，换成 (0,-2)）
+    [Test] public void DockEntryAndDoorReserved()
+    {
+        var s = new Stock { brick = 1 };
+        foreach (var c in new[] { new Vector2Int(0, -2), new Vector2Int(1, -1), new Vector2Int(-3, -1), new Vector2Int(2, -3) })
+            Assert.IsFalse(Bricks.CanPlace(s, c, 0), $"{c} 在保留区里");
+        foreach (var c in new[] { new Vector2Int(0, -4), new Vector2Int(-4, -1), new Vector2Int(3, -2) })
+            Assert.IsTrue(Bricks.CanPlace(s, c, 0), $"{c} 保留区外一格");
+        Assert.IsFalse(Bricks.CanPlace(s, Bricks.Cell(Config.DoorPos), 0), "门口那一格");
+        Assert.AreEqual("", Teach(s, 0, new Vector3(0.5f, Config.GroundY, -2.5f), fished: true), "码头入口前面朝码头：不出「B 放砖」");
+    }
+
+    // loop-7 砖不砸人：有人站着的格子、胶囊压进砖位的相邻格不能放，离得够远的照样能放；提示跟着：P2 站在 P1 面前一格就不出「B 放砖」
+    [Test] public void NoBrickOnPeople()
+    {
+        Vector3 p1 = new Vector3(-5.5f, Config.GroundY, -6.5f), p2 = p1 + Vector3.forward * Config.CellSize;   // 床和树之间的空沙地，两人都站在格子正中
+        var c = Bricks.Cell(p2); var s = new Stock { brick = 1 };
+        Vector3 Side(float d) => new Vector3((c.x + 1) * Config.CellSize + d, Config.GroundY, p2.z);   // 右边隔壁格里、离这格 d m
+        string Hint(params Vector3[] at) => Hints.Text(s, 0, p1, Vector3.forward, new Vector3[0], new int[0], FishState.Idle, true, true, at);
+        Assert.AreEqual(c, Bricks.Front(p1, Vector3.forward), "P2 就站在 P1 面前那一格");
+        Assert.IsTrue(Bricks.UnderFoot(c, new[] { p1, p2 }), "有人站着");
+        Assert.IsFalse(Bricks.UnderFoot(c, new[] { p1 }), "P2 走开了（P1 自己的胶囊够不着面前那格）");
+        Assert.IsTrue(Bricks.UnderFoot(c, new[] { Side(0.2f) }), "隔壁格的人胶囊压进这格的砖位");
+        Assert.IsFalse(Bricks.UnderFoot(c, new[] { Side(0.45f) }), "隔壁格离得够远");
+        Assert.AreEqual("", Hint(p1, p2), "面前有人：不出「B 放砖」");
+        Assert.AreEqual("B 放砖", Hint(p1));
+    }
+
+    // loop-7 砍树只认站在树南侧（人的 z ≤ 树干 z + ChopSouth）：北侧够得着也不算，南侧算，提示跟着
+    [Test] public void ChopSouthOnly()
+    {
+        var tree = new[] { new Vector3(-5.84f, Config.GroundY, -10.16f) };   // 场景里离床最近的那棵
+        string Hint(Vector3 p) => Hints.Text(new Stock(), 0, p, Vector3.forward, tree, new int[1], FishState.Idle, true, true);
+        Assert.AreEqual(-1, Trees.Nearest(tree, tree[0] + new Vector3(0f, 0f, 1f)), "北侧 1 m：够得着也不算");
+        Assert.AreEqual(-1, Trees.Nearest(tree, tree[0] + new Vector3(0.8f, 0f, Config.ChopSouth + 0.05f)), "东边偏北，超出 5 cm");
+        Assert.AreEqual(0, Trees.Nearest(tree, tree[0] + new Vector3(0.8f, 0f, Config.ChopSouth - 0.05f)), "东边偏北，还在 ChopSouth 以内");
+        Assert.AreEqual(0, Trees.Nearest(tree, tree[0] + new Vector3(0f, 0f, -1f)), "南侧 1 m");
+        Assert.AreEqual("E 砍树", Hint(tree[0] + new Vector3(0f, 0f, -1f)));
+        Assert.AreEqual("", Hint(tree[0] + new Vector3(0f, 0f, 1f)), "北侧不提示");
     }
 
     // loop-6 修补：钓鱼状态变化 → 底部说哪句（Hints.Update 每帧拿上一帧比）

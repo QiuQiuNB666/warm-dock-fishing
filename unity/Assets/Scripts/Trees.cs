@@ -18,13 +18,14 @@ public class Trees : MonoBehaviour
 
     public static void NewDay() => System.Array.Clear(Hits, 0, Hits.Length);   // 睡醒：所有树重置
 
-    // 够得着（XZ 距离 ≤ ChopRange）的最近一棵的下标；都够不着返回 -1
+    // 够得着（XZ 距离 ≤ ChopRange）、人站在树南侧（z ≤ 树干 z + ChopSouth，loop-7：北侧会被树冠挡住）的最近一棵的下标；都不是返回 -1
     public static int Nearest(Vector3[] trees, Vector3 p)
     {
         int best = -1;
         float bestD = Config.ChopRange;
         for (int k = 0; k < trees.Length; k++)
         {
+            if (p.z > trees[k].z + Config.ChopSouth) continue;
             float d = Vector2.Distance(new Vector2(trees[k].x, trees[k].z), new Vector2(p.x, p.z));
             if (d <= bestD) { best = k; bestD = d; }
         }
