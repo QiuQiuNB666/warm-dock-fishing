@@ -1,8 +1,8 @@
 using UnityEngine;
 
-// 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块，进两人共用的 Stock；没鱼、不在门口都不做事。
+// 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块，进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则砍树）。
 // B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
-// 边长 0.9、陶土色。成功后底部出现 1.5 秒提示，不常驻库存面板。读档后由 PierSave 调 Rebuild 按记录重建。
+// 边长 0.9、陶土色。成功后底部出现 1.5 秒提示；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
 {
     public Material material;
@@ -86,7 +86,6 @@ public class Bricks : MonoBehaviour
         {
             if (p == null || !p.isActiveAndEnabled) continue;
             var k = KeyMap.Players[p.playerIndex];
-            if (InputManager2P.Pressed(k.Interact) && Trade(Stock.Current, p.playerIndex, p.transform.position)) Toast("换得一砖");
             if (!InputManager2P.Pressed(k.Build)) continue;
             var c = Cell(p.transform.position + p.transform.forward * Config.CellSize);
             var r = TryPlace(Stock.Current, c, Height(Stock.Current, c));   // 同格往上垒一层
@@ -96,12 +95,13 @@ public class Bricks : MonoBehaviour
         }
     }
 
-    public void Toast(string text) { toastText = text; toast = 1.5f; }   // 底部 1.5 秒提示（PierSave 睡醒也用它）
+    public void Toast(string text) { toastText = text; toast = 1.5f; }   // 底部 1.5 秒提示（PierSave 睡醒、Trees 换砖砍树也用它）
 
     void OnGUI()
     {
-        if (toast <= 0f || Pause.On) return;
+        if (Pause.On) return;   // 暂停时顶部库存和底部提示都不画
         style ??= new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter, font = font };
-        GUI.Box(new Rect((Screen.width - 220f) * 0.5f, Screen.height - 110f, 220f, 44f), toastText, style);
+        GUI.Box(new Rect((Screen.width - 200f) * 0.5f, 8f, 200f, 40f), $"砖 {Stock.Current.brick}　木 {Stock.Current.wood}", style);   // 顶部正中，左上/右上的字让开
+        if (toast > 0f) GUI.Box(new Rect((Screen.width - 220f) * 0.5f, Screen.height - 110f, 220f, 44f), toastText, style);
     }
 }

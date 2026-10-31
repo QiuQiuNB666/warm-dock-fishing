@@ -74,6 +74,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   stage-4  unity/Assets/Scripts/: Pause.cs Bricks.cs
 美术打磨（art-1~4）新增：unity/Assets/Art/SM_{tree,crate,barrel,lantern,bedframe,bedding,plank}.fbx（model.py 产出）；
   unity/Assets/Fonts/WarmCJK-Regular.otf（思源黑体子集，按 OFL 保留字体名条款改名）+ WarmCJK-OFL.txt（原许可证）
+自迭代环新增：loop-1  unity/Assets/Scripts/Trees.cs（砍树 + E 的就近交互）  unity/Assets/Tests/EditMode/PlayTests.cs（玩法纯逻辑测试，CoopTests 已满）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

@@ -34,6 +34,7 @@ public static class BuildNature
             trunk.center = Vector3.up * 0.6f; trunk.size = new Vector3(0.25f, 1.2f, 0.25f);
             placed++;
         }
+        nature.gameObject.AddComponent<Trees>();   // 砍树（E；门口有鱼先换砖）：上面的生成顺序就是树号
 
         // 河流：从崖底流到海岸线
         var r = Config.RiverStart;

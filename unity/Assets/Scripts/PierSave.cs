@@ -91,11 +91,11 @@ public class PierSave : MonoBehaviour
         return d;
     }
 
-    // R 睡觉：时间跳到早晨那一档，两人回床边（P2 偏开 P2BedOffset），立刻存档。不 Application.Quit。
+    // R 睡觉：时间跳到早晨那一档，所有树重置（砍的状态不进存档），两人回床边（P2 偏开 P2BedOffset），立刻存档。不 Application.Quit。
     public static Data Sleep(TimeOfDay tod, PlayerManager pm)
     {
         if (tod != null) tod.t = Morning;
-        PlaceAtBed(pm);
+        Trees.NewDay(); PlaceAtBed(pm);
         return Save(tod);
     }
 

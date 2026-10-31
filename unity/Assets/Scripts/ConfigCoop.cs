@@ -48,6 +48,10 @@ public static partial class Config
     public const int MaxBrick = 999, MaxWood = 999, MaxStone = 999;
     public const int MaxFish = 64, MaxCloth = 64;   // 生鱼、熟鱼、布
     public const float InteractRange = 2f, HugRange = 1.5f;
+    // loop-1 砍树：人离树干（树的 XZ 位置）≤ ChopRange 按 E 砍一下（树干碰撞盒挡着人，站旁边要够得着），满 ChopHits 下得 1 木；
+    // 每砍一下树绕树根摆 ChopShakeSec 秒、最大 ChopShakeDeg 度，幅度衰减到 0
+    public const float ChopRange = 1.6f, ChopShakeSec = 0.3f, ChopShakeDeg = 5f;
+    public const int ChopHits = 3;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;
