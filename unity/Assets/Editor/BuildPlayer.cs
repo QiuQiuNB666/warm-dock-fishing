@@ -7,12 +7,17 @@ using UnityEngine;
 // -executeMethod BuildPlayer.Windows / BuildPlayer.Web；失败退出码 1。
 public static class BuildPlayer
 {
-    const string Desktop = "Build/Desktop/Warm.exe";
+    const string Desktop = "Build/Desktop";
     const string WebDir = "Build/Web";
     const string FillCss = "<style>html,body{margin:0;height:100%;overflow:hidden}#unity-container,#unity-canvas{position:fixed;inset:0;width:100%!important;height:100%!important}</style>";
     const string Dpr = "config.devicePixelRatio = Math.min(window.devicePixelRatio, 2); ";
 
-    public static void Windows() => Run(BuildTarget.StandaloneWindows64, Desktop, null);
+    // -buildOut <目录>：自迭代环的闸打到 Build/Loop，不占用户开着的 Build/Desktop；不给就是 Build/Desktop
+    public static void Windows()
+    {
+        string dir = GameBootstrap.Arg("-buildOut");
+        Run(BuildTarget.StandaloneWindows64, Path.Combine(string.IsNullOrEmpty(dir) ? Desktop : dir, "Warm.exe"), null);
+    }
 
     public static void Web() => Run(BuildTarget.WebGL, WebDir, () => PatchIndex(Path.Combine(WebDir, "index.html")));
 

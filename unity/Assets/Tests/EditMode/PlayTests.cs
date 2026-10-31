@@ -67,4 +67,23 @@ public class PlayTests
         Assert.AreEqual(Trees.Traded, Trees.Interact(s, 0, Config.DoorPos, trees), "有鱼：先换砖");
         Assert.AreEqual(new[] { 0, 1 }, new[] { s.Count(ItemType.RawFish, 0), s.brick });
     }
+
+    // loop-2：-script 计划里的键码是 Windows 虚拟键（同 play_input.ps1），映射成 KeyCode
+    [TestCase(87, KeyCode.W), TestCase(69, KeyCode.E), TestCase(32, KeyCode.Space), TestCase(27, KeyCode.Escape),
+     TestCase(37, KeyCode.LeftArrow), TestCase(38, KeyCode.UpArrow), TestCase(39, KeyCode.RightArrow), TestCase(40, KeyCode.DownArrow),
+     TestCase(97, KeyCode.Keypad1)]
+    public void ScriptKeyMap(int vk, KeyCode key) => Assert.AreEqual(key, ScriptedPlay.Key(vk));
+
+    // loop-2：计划缺字段不炸：没写的取默认值，空串是空计划
+    [Test] public void ScriptPlanMissingFields()
+    {
+        var s = ScriptedPlay.Parse("[{\"wait\":800},{\"until\":\"CAUGHT p0\"},{},{\"click\":[0.5,0.53]},{\"save\":true,\"shot\":\"a.png\"}]");
+        Assert.AreEqual(5, s.Length);
+        Assert.AreEqual(800, s[0].wait);
+        Assert.AreEqual(new[] { 0, 0, 0 }, new[] { s[1].press, s[1].every, s[1].timeout }, "until 只写了正则");
+        Assert.IsTrue((s[2].down?.Length ?? 0) == 0 && s[2].tap == 0 && !s[2].save && string.IsNullOrEmpty(s[2].until), "空步骤");
+        Assert.AreEqual(2, s[3].click.Length);
+        Assert.IsTrue(s[4].save && s[4].shot == "a.png" && !s[4].quit);
+        Assert.AreEqual(0, ScriptedPlay.Parse("").Length, "空计划");
+    }
 }
