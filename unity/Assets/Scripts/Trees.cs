@@ -7,7 +7,7 @@ using UnityEngine;
 public class Trees : MonoBehaviour
 {
     public const int Traded = -2, Cooked = -3, NoWood = -4;   // Interact 的返回值：这一下换了砖 / 烤好一条鱼 / 火边有生鱼但没木（loop-9）
-    public static readonly bool[] TradedOnce = new bool[KeyMap.Players.Length];   // 这一局各人换过砖没有（Hints 兜底用；只在内存，不进存档）
+    public static readonly bool[] TradedOnce = new bool[KeyMap.Players.Length], CookedOnce = new bool[KeyMap.Players.Length];   // 这一局各人换过砖 / 烤过鱼没有（Hints 兜底用，烤过才关「拿生鱼去篝火烤」，loop-11；只在内存，不进存档）
     public static int[] Hits = new int[0];   // 每棵今天砍了几下，到 ChopHits = 今天已出过木
     Transform[] trees = new Transform[0];
     public static Vector3[] Pos = new Vector3[0];   // 每棵的位置（树号顺序），Hints 只读
@@ -87,7 +87,7 @@ public class Trees : MonoBehaviour
             int i = p.playerIndex, b = Stock.Current.brick;   // 换了几块砖 = 换砖前后的砖数差（熟鱼一条换两砖；loop-10 不再另数一遍熟鱼）
             int k = Interact(Stock.Current, i, p.transform.position, Pos), n = Stock.Current.brick - b;
             if (k == Traded) { Toast(n > 1 ? "换得两砖" : "换得一砖"); TradedOnce[i] = true; Debug.Log($"EVT trade p{i} bricks={n}"); }
-            if (k == Cooked) { Hints.Say(i, "烤好一条"); Debug.Log($"EVT cook p{i}"); }   // loop-9：说在自己的字条位置（同钓鱼失败那句），不走底部 Toast
+            if (k == Cooked) { Hints.Say(i, "烤好一条"); CookedOnce[i] = true; Debug.Log($"EVT cook p{i}"); }   // loop-9：说在自己的字条位置（同钓鱼失败那句），不走底部 Toast
             if (k == NoWood) Hints.Say(i, "没柴了，去砍树");
             if (k < 0) continue;   // 换了砖、烤了鱼（或没柴），或不在树旁也不在门口
             int h = Chop(Stock.Current, Hits, k);

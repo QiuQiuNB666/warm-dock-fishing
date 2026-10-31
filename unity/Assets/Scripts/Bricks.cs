@@ -3,10 +3,10 @@ using UnityEngine;
 
 // 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块（loop-9：有熟鱼先用熟鱼，一条换两块），进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则火边烤鱼，否则砍树）。
 // B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着、不在码头入口和门口的保留区、没人站着、放下不切断去码头的路（BrickPath）的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
-// 边长 0.9、陶土色。成功后底部出现 1.5 秒提示；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
+// 边长 0.9、陶土色（垒满 MaxHeight 层的顶块用 M_glow = 小灯塔，loop-11）。成功后底部出现 1.5 秒提示，放不下按原因在自己字条位置说一句（BrickWhy，loop-11）；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public class Bricks : MonoBehaviour
 {
-    public Material material;
+    public Material material, glow;   // 陶土色；glow = M_glow（BuildScene 从 TimeOfDay 拿，亮度跟时段走）：小灯塔的顶块（loop-11）
     public Font font;   // 网页端没有系统字体回退：「放下一砖」用 Assets/Fonts 的思源黑体子集（WarmCJK）
     public GameObject cabin;   // BuildScene 赋值：小屋占着的格子也不能放砖
     PlayerManager players;
@@ -65,14 +65,11 @@ public class Bricks : MonoBehaviour
             new Vector2(Mathf.Clamp(q.x, r.xMin, r.xMax) - q.x, Mathf.Clamp(q.z, r.yMin, r.yMax) - q.z).sqrMagnitude < Config.PlayerRadius * Config.PlayerRadius);
     }
 
-    // 只放沙滩上、IsWalkable、不在码头上、没被场景物体占着、不在保留区；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败
-    public static bool CanPlace(Stock s, Vector2Int c, int layer)
-    {
-        Vector3 p = Center(c, 0);
-        if (!Config.OnBeach(p) || !Config.IsWalkable(p) || Config.OnDock(p) || Occupied(c) || Reserved(c)) return false;   // 码头上不准放砖
-        if (s.Count(ItemType.Brick) < 1 || layer < 0 || layer >= Config.MaxHeight) return false;
-        return !Has(s, c, layer) && (layer == 0 || Has(s, c, layer - 1));
-    }
+    // 只放沙滩上、IsWalkable、不在码头上、没被场景物体占着、不在保留区；最多 MaxHeight 层；没有下层不能放上层，同格同层再放失败；没砖失败（loop-11 判断搬进 BrickWhy，不判人、不判路）
+    public static bool CanPlace(Stock s, Vector2Int c, int layer) => BrickWhy.Of(s, c, layer) == BrickWhy.Code.Ok;
+
+    // loop-11 小灯塔：一格垒到第 MaxHeight 层，顶上那块用 M_glow（Spawn；读档 Rebuild 同样按记录判断）
+    public static bool Lighthouse(BrickRecord r) => r.layer == Config.MaxHeight - 1;
 
     // 成功返回新记录（已扣砖、已记入 s.bricks、dirty），失败返回 null
     public static BrickRecord TryPlace(Stock s, Vector2Int c, int layer)
@@ -101,7 +98,7 @@ public class Bricks : MonoBehaviour
         g.transform.SetParent(root, false);
         g.transform.position = Center(new Vector2Int(r.x, r.z), r.layer);
         g.transform.localScale = Vector3.one * Config.BrickSize;
-        g.GetComponent<Renderer>().sharedMaterial = material;
+        g.GetComponent<Renderer>().sharedMaterial = Lighthouse(r) ? glow : material;
     }
 
     // 挡砖的矩形 = 场景碰撞体里伸出地面的（顶面高出 GroundY 不到 BlockInset 的是沙滩台地、海底、木板、码头桩，不算）；人（CharacterController）和砖自己不算。
@@ -125,12 +122,14 @@ public class Bricks : MonoBehaviour
             if (p == null || !p.isActiveAndEnabled) continue;
             var k = KeyMap.Players[p.playerIndex];
             if (!InputManager2P.Pressed(k.Build)) continue;
-            var c = Front(p.transform.position, p.transform.forward); var at = players.Positions();
-            var r = UnderFoot(c, at) || !BrickPath.Open(Stock.Current, c, at) ? null : TryPlace(Stock.Current, c, Height(Stock.Current, c));   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层
-            Debug.Log($"EVT build p{p.playerIndex} cell={c.x},{c.y} {(r != null ? "ok" : "no")}");   // 实玩查面前是哪一格、放没放
-            if (r == null) continue;
+            int i = p.playerIndex; var c = Front(p.transform.position, p.transform.forward); var at = players.Positions(); int h = Height(Stock.Current, c);
+            var why = BrickWhy.Of(Stock.Current, c, h, at, BrickPath.Open(Stock.Current, c, at));   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层（loop-11 原因码）
+            var r = why == BrickWhy.Code.Ok ? TryPlace(Stock.Current, c, h) : null;
+            Debug.Log($"EVT build p{i} cell={c.x},{c.y} {(r != null ? "ok" : "no " + why)}");   // 实玩查面前是哪一格、放没放、为什么
+            if (r == null) { Hints.Say(i, BrickWhy.Say(why)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置
             Spawn(r);
             Toast("放下一砖");
+            if (Lighthouse(r)) { Hints.Say(i, "垒成一座小灯塔"); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }
         }
     }
 

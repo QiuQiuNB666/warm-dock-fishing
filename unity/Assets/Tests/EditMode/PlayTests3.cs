@@ -55,4 +55,67 @@ public class PlayTests3
         Assert.IsTrue(s[1].teleport == null || s[1].teleport.Length == 0, "没写 teleport 的步不摆人");
         Assert.AreEqual(100, s[1].wait);
     }
+
+    // loop-11 小灯塔：同一格垒满 MaxHeight 层，顶块（layer = MaxHeight−1）发光；只垒 3 层的顶块不发光；存档读回来（Rebuild 按记录判断）照样只有顶块发光
+    [Test] public void LighthouseTop()
+    {
+        var s = new Stock { brick = Config.MaxHeight }; var c = Bricks.Cell(PlayTests.Open);
+        for (int k = 0; k < Config.MaxHeight - 1; k++) Bricks.TryPlace(s, c, k);
+        Assert.IsFalse(Bricks.Lighthouse(s.bricks[^1]), "三层：顶块不发光");
+        Assert.IsTrue(Bricks.Lighthouse(Bricks.TryPlace(s, c, Config.MaxHeight - 1)), "四层：顶块发光");
+        var back = PierSave.Restore(PierSave.Parse(PierSave.ToJson(PierSave.Capture(0f, Config.BedPos, s, 2))), out _, out _);
+        Assert.AreEqual(Config.MaxHeight, back.bricks.Count);
+        Assert.AreEqual(1, back.bricks.FindAll(Bricks.Lighthouse).Count, "读档重建：只有顶块发光");
+    }
+
+    // loop-11 按 B 放不下要说为什么（BrickWhy.Of → Say），每种原因一条。Sand = 床和树之间的空沙地，手里 1 块砖放得下（Ok 说空串）
+    static Vector2Int Sand => Bricks.Cell(PlayTests.Open);
+    static string Why(Stock s, Vector2Int c, Vector3[] at = null, bool open = true) => BrickWhy.Say(BrickWhy.Of(s, c, Bricks.Height(s, c), at, open));
+
+    [Test] public void WhyPlaceable() => Assert.AreEqual("", Why(new Stock { brick = 1 }, Sand));
+    [Test] public void WhyNoBrick() => Assert.AreEqual("没砖了，拿鱼去门口换", Why(new Stock(), Sand));
+    [Test] public void WhyDockEntry() => Assert.AreEqual("码头口要留路", Why(new Stock { brick = 1 }, Bricks.Cell(new Vector3(Config.DockEntry.center.x, Config.GroundY, Config.DockEntry.center.y))));
+    [Test] public void WhyDoor() => Assert.AreEqual("门口要留路", Why(new Stock { brick = 1 }, Bricks.Cell(Config.DoorPos)));
+    [Test] public void WhyPerson() => Assert.AreEqual("前面有人", Why(new Stock { brick = 1 }, Sand, new[] { Bricks.Center(Sand, 0) }));
+
+    [Test] public void WhyFull()
+    {
+        var s = new Stock { brick = Config.MaxHeight + 1 };
+        for (int k = 0; k < Config.MaxHeight; k++) Bricks.TryPlace(s, Sand, k);
+        Assert.AreEqual("最高四层", Why(s, Sand));
+    }
+
+    [Test] public void WhyPath()   // 同 NoSealingTheDock：人在里面、三面已围上，第四面合口
+    {
+        var s = new Stock { brick = 4 }; var me = new[] { new Vector3(-10.5f, Config.GroundY, -12.5f) }; var c = Bricks.Cell(me[0]);
+        foreach (var d in new[] { Vector2Int.left, Vector2Int.right, Vector2Int.down }) Bricks.TryPlace(s, c + d);
+        Assert.AreEqual("这样会把路堵死", Why(s, c + Vector2Int.up, me, BrickPath.Open(s, c + Vector2Int.up, me)));
+    }
+
+    [Test] public void WhyBlocked()   // 海里、码头上（被床/屋/树/火占着同一句，见 PlayTests2/4 的 Blockers 用例）；CanPlace 同样不许
+    {
+        var s = new Stock { brick = 1 };
+        foreach (var c in new[] { Bricks.Cell(new Vector3(5f, Config.GroundY, 10f)), Bricks.Cell(new Vector3(0.2f, Config.GroundY, 5f)) })
+        {
+            Assert.AreEqual("这里放不下", Why(s, c), $"{c}");
+            Assert.IsFalse(Bricks.CanPlace(s, c, 0), $"{c}");
+        }
+    }
+
+    // loop-11 「拿生鱼去篝火烤」只看烤过没有（Trees.CookedOnce）：换过砖、有生鱼有木、不在火边照样出；烤过一次（也换过砖）兜底都关
+    [Test] public void CookHintAfterTrade()
+    {
+        var s = new Stock { wood = 1 }; s.Set(ItemType.RawFish, 1, 0);
+        string Hint(bool cooked) => Hints.Text(s, 0, PlayTests.Open, Vector3.forward, new Vector3[0], new int[0], FishState.Idle, true, true, null, true, cooked);
+        Assert.AreEqual("拿生鱼去篝火烤", Hint(false), "换过砖、没烤过");
+        Assert.AreEqual("", Hint(true), "烤过、也换过砖");
+    }
+
+    // loop-11 两张字条叠在一起时左右分开，中间留 HintGap（12 px）
+    [Test] public void HintLabelsGap()
+    {
+        Rect a = new Rect(150f, 50f, 140f, 26f), b = new Rect(100f, 50f, 120f, 26f);
+        Hints.Apart(ref a, ref b);
+        Assert.AreEqual(Config.HintGap, a.x - b.xMax, 1e-3f);
+    }
 }

@@ -62,6 +62,7 @@ public static class BuildFx
         lamps.Add(Lamp(root.Find("Campfire"), Vector3.up * Config.FireLampY, Config.FireLampRange));
 
         tod.glow = glow;
+        tod.fire = root.Find("Campfire").GetComponentInChildren<Renderer>();   // loop-11 火苗运行时另用一份 M_glow（TimeOfDay.Start 换上），夜里单独压低
         tod.lamps = lamps.ToArray();
         PostFx(root, cam);
     }

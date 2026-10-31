@@ -7,6 +7,8 @@ public class TimeOfDay : MonoBehaviour
     public Material water;
     public Material glow;     // 灯笼/窗户共用的发光材质
     public Light[] lamps;
+    public Renderer fire;     // loop-11 篝火：Start 给它的火苗换上自己的一份 M_glow（fireGlow，底色用色卡里的 LampColor），夜里单独压低发光倍数（Config.FireGlow），不再过曝成一团白星
+    Material fireGlow;
     public float t;   // 0..1 一天；0=晨 0.25=午 0.5=昏 0.75=夜
     public bool frozen;   // 截图模式：不随时间走
 
@@ -32,6 +34,7 @@ public class TimeOfDay : MonoBehaviour
     void Start()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+        if (fire != null && glow != null) { fireGlow = new Material(glow) { color = Config.LampColor }; fire.sharedMaterials = System.Array.ConvertAll(fire.sharedMaterials, m => m == glow ? fireGlow : m); }
 #if UNITY_WEBGL && !UNITY_EDITOR
         for (int i = Config.WebLamps; i < lamps.Length; i++) lamps[i].enabled = false;   // 网页端控制点光源数量
         System.Array.Resize(ref lamps, Mathf.Min(lamps.Length, Config.WebLamps));
@@ -57,6 +60,7 @@ public class TimeOfDay : MonoBehaviour
         RenderSettings.ambientGroundColor = s.Ground;
         if (water != null) water.SetColor(ColorId, s.Water);
         if (glow != null) glow.SetColor(EmissionId, Config.LampColor * (0.05f + s.Glow * 4f));
+        if (fireGlow != null) fireGlow.SetColor(EmissionId, Config.LampColor * (0.05f + s.Glow * Config.FireGlow));   // 火苗：同色同底，只是夜里倍数小
         if (lamps != null) foreach (var l in lamps) if (l != null) l.intensity = s.Glow * 3f;
     }
 }

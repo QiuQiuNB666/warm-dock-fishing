@@ -89,7 +89,7 @@ public static class BuildScene
         game.AddComponent<PlayerManager>();
         game.AddComponent<PierSave>();   // 开局读档（没档/坏档新开），两人站到床边
         var cjk = AssetDatabase.LoadAssetAtPath<Font>(CjkFont);   // 暂停菜单、底部提示
-        var bricks = game.AddComponent<Bricks>(); bricks.material = BuildNature.Mat("M_brick", Config.BrickColor); bricks.font = cjk; bricks.cabin = cabin;   // 砖：门口 E 拿鱼换、B 放；小屋没碰撞体，挡砖另给
+        var bricks = game.AddComponent<Bricks>(); bricks.material = BuildNature.Mat("M_brick", Config.BrickColor); bricks.glow = tod.glow; bricks.font = cjk; bricks.cabin = cabin;   // 砖：门口 E 拿鱼换、B 放；小屋没碰撞体，挡砖另给
         game.AddComponent<Pause>().font = cjk;
         game.AddComponent<Hints>().font = cjk;   // 头顶就近提示（loop-3）
 
