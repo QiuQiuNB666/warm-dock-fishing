@@ -106,7 +106,7 @@ public class FishingStateMachine : MonoBehaviour
         bool hold = InputManager2P.FishHeld(owner) || (pointer && Input.GetMouseButton(0));
         bool demo = DemoDrives(this);
         if (demo) DemoInput(out down, out hold);
-        if (down && (Busy || Config.InFishSpot(transform.position))) Logic.Press();
+        if (down && !Hug.On && (Busy || Config.InFishSpot(transform.position))) Logic.Press();   // 抱着不抛竿（loop-13；抱要两人都 Idle，所以抱着时 Busy 恒假）
         Logic.Tick(Time.deltaTime, hold);   // 咬钩那一刻的 EVT bite 在 Hints.Update 的前后帧比对里打（loop-10）
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {

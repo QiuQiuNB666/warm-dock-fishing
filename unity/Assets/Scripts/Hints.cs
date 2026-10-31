@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEngine;
 
 // 就近提示（loop-3）：每名玩家头顶一行小字，只列「现在按了就会成功」的动作，最多 HintMax 个，全角空格隔开。
-// 顺序：换砖 > 烤鱼 > 砍树 > 睡觉 > 放砖 > 抛竿；E 只列它实际会做的那一个（门口有鱼只列换砖；火边有生鱼、有木列烤鱼（loop-9）；否则看 Trees.Nearest 那一棵今天还能不能出木）。
+// 顺序：换砖 > 烤鱼 > 砍树 > 睡觉 > 放砖 > 抛竿 > 兜底 > 抱抱（loop-13：排在兜底之后，只补空位；站定 HintStill 秒才画，同兜底）；E 只列它实际会做的那一个（门口有鱼只列换砖；火边有生鱼、有木列烤鱼（loop-9）；否则看 Trees.Nearest 那一棵今天还能不能出木）。
 // loop-6 教学：钓鱼过程中只在咬钩（提竿）、收线两步提示，抛竿/等鱼/钓上/跑了不画；兜底指路排在现有动作后面补位（不足 HintMax 才露出来）：
 // 没鱼「WASD 走去码头尽头钓鱼」（P2「方向键走…」，loop-10）、有生鱼「拿生鱼回小屋门口换砖」（有熟鱼说「拿熟鱼…」，loop-9；有生鱼有木说「拿生鱼去篝火烤」，火边能烤时让给「E 烤鱼」，loop-10），这名玩家这一局钓上过一条（FishingLogic.CaughtCount）/ 换过一次砖（Trees.TradedOnce）后
 // 各自不再出（只记在内存；「拿生鱼去篝火烤」改看烤过一次没有 Trees.CookedOnce，loop-11），人已在那儿（列了抛竿 / 换砖）不重复，站定 HintStill 秒才画。钓鱼失败（鱼跑了、线断了）在失败那人自己的字条位置说 HintFail 秒（Say；loop-9 烤鱼那句也用它）。
@@ -27,7 +27,7 @@ public class Hints : MonoBehaviour
 
     // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有、在场各人的位置（loop-7，null = 不判人）、
     // 面前那格放下去不切断去码头的路（loop-7 修补：BrickPath.Open 的结果，OnGUI 每 PathEvery 秒算一次传进来；默认 true = 不判）、这一局烤过鱼没有（loop-11 Trees.CookedOnce）→ 提示文字；不提示返回空串
-    public static string Text(Stock s, int player, Vector3 p, Vector3 forward, Vector3[] trees, int[] hits, FishState fish, bool fished, bool traded, Vector3[] people = null, bool open = true, bool cookedOnce = false)
+    public static string Text(Stock s, int player, Vector3 p, Vector3 forward, Vector3[] trees, int[] hits, FishState fish, bool fished, bool traded, Vector3[] people = null, bool open = true, bool cookedOnce = false, bool hug = false)
     {
         var k = KeyMap.Players[player];
         string f = KeyName(k.Fish), gap = k.Fish == KeyCode.Space ? "" : " ";   // 「空格」直接连着中文，Num5 两边空一格
@@ -47,6 +47,7 @@ public class Hints : MonoBehaviour
             cast,
             raw || cooked ? (e is "换砖" or "烤鱼" ? null : raw && s.Count(ItemType.Wood) > 0 && !cookedOnce ? "拿生鱼去篝火烤" : traded ? null : cooked ? "拿熟鱼回小屋门口换砖" : "拿生鱼回小屋门口换砖")   // 兜底：排最后补位，人已在那儿（门口换砖 / 火边能烤 / 抛竿）不重复；去烤那句烤过一次才关（loop-11，不再被换过砖关掉），回门口换那两句换过砖就关
                 : fished || cast != null ? null : (k.Up == KeyCode.W ? "WASD " : "方向键") + "走去码头尽头钓鱼",   // loop-10 说怎么走：P1 WASD，P2 方向键
+            hug ? $"{KeyName(k.Hug)} 抱抱" : null,   // loop-13 两人能抱（Hug.Ready）：排最后，前面不满 HintMax 才露出来
         };
         return string.Join("　", all.Where(a => a != null).Take(Config.HintMax));
     }
@@ -100,7 +101,7 @@ public class Hints : MonoBehaviour
             if (Stock.Current.brick > 0 && Time.time >= pathAt[p.playerIndex])   // 手里有砖才算（没砖 CanPlace 本来就不过）
             { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
-            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex]);
+            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && Hug.Ready(players.players));
             if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖）：整句换掉 Text。钓鱼中按 B 放不下不说（loop-12，BrickWhy.Say 给空串）；失败那句之后下一次咬钩最早在 CastTime + WaitMin 后——所以「提竿」不会被盖住
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;

@@ -23,18 +23,20 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        Vector3 dir = Pause.On || (fishing != null && fishing.Busy) ? Vector3.zero : ReadInput();   // 暂停时不读移动
+        Vector3 dir = Still(Pause.On, fishing != null && fishing.Busy, Hug.On) ? Vector3.zero : ReadInput();   // 暂停、钓鱼中、抱着（loop-13）时不读移动
         Vector3 step = dir * Config.PlayerSpeed * Time.deltaTime;
         step = Constrain(transform.position, step);
         cc.Move(step + Vector3.down * 0.01f);   // 地面同高，只给一点贴地力
         Speed01 = step.sqrMagnitude > 1e-8f ? 1f : 0f;
-        Vector3 face = Speed01 > 0f ? dir : FishingStateMachine.DemoDrives(this) && DemoArrived(transform.position) ? Vector3.forward : Vector3.zero;
+        Vector3 face = Hug.On ? Hug.Facing[owner] : Speed01 > 0f ? dir : FishingStateMachine.DemoDrives(this) && DemoArrived(transform.position) ? Vector3.forward : Vector3.zero;
         if (face != Vector3.zero)
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(face), 12f * Time.deltaTime);
         if (animator == null) return;
         animator.SetFloat(SpeedId, Speed01, 0.1f, Time.deltaTime);
         animator.SetFloat(WalkScaleId, step.magnitude / Mathf.Max(Time.deltaTime, 1e-4f) / Config.WalkAnimSpeed);   // 步频跟实际速度走，不滑步
     }
+
+    public static bool Still(bool paused, bool busy, bool hug) => paused || busy || hug;   // 这一帧不读移动（loop-13 抱着也算）
 
     public static bool DemoArrived(Vector3 p) => new Vector2(p.x - Config.FishSpot.x, p.z - Config.FishSpot.z).magnitude < 0.3f;
 
