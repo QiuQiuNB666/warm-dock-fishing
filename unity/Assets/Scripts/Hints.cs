@@ -60,6 +60,7 @@ public partial class Hints : MonoBehaviour
 
     // loop-16 钓上那一刻在这人自己的字条位置说的那句（FishingStateMachine 记账处调 Say）：中文鱼名查 Config.FishNamesZh（和 FishNames 一一对应）
     public static string Caught(string fish) => $"钓上一条{Config.FishNamesZh[System.Array.IndexOf(Config.FishNames, fish)]}！";
+    public static string Lantern => $"灯塔引来一条{Config.LanternZh}！";   // loop-17 夜里被灯塔引来的那条（记熟鱼）代替上面那句
 
     void Start() { players = FindAnyObjectByType<PlayerManager>(); tod = FindAnyObjectByType<TimeOfDay>(); cam = Camera.main; }
 

@@ -24,6 +24,18 @@ public partial class Hints
     // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
     public static bool Low(bool feet, Vector3 me, Vector3[] all) => feet || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
 
+    // loop-17 所有 Say 共用的这一处：刚说过一句（saying）就整句换掉提示，只有这人正咬钩时照常画「空格 提竿！」——另一人睡醒 / 天亮说的「天亮了」原会把它换掉 1.5 s（= BiteWindow），鱼必跑。
+    // 收线时照换：张力条按 ten[] 另画，不受影响
+    public static string Shown(string text, string said, bool saying, FishState fish) => saying && fish != FishState.Bite ? said : text;
+
+    // loop-17 抱着时「♥」的世界位置：两人中点上方 HugHeart；南北站位（Hug.Below，含斜站 45° 内）x 改取北边那人.x + HugHeartSide，不压他的帽檐（loop-16 取中点 + 0.6 m，北边那人偏东时又压回去）
+    public static Vector3 Heart(Vector3 a, Vector3 b)
+    {
+        var m = (a + b) * 0.5f + Vector3.up * Config.HugHeart;
+        if (Hug.Below(a, new[] { b }) || Hug.Below(b, new[] { a })) m.x = (a.z > b.z ? a.x : b.x) + Config.HugHeartSide;
+        return m;
+    }
+
     void OnGUI()
     {
         if (Pause.On || players == null || cam == null) return;
@@ -38,7 +50,7 @@ public partial class Hints
             { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
             string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && !Hug.Once && Hug.Ready(players.players), tod == null || Sleep.Evening(tod.t));   // loop-14「H 抱抱」抱过一次（Hug.Once）就不再出；loop-16 黄昏前不列睡觉
-            if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖）：整句换掉 Text。钓鱼中按 B 放不下不说（loop-12，BrickWhy.Say 给空串）；失败那句之后下一次咬钩最早在 CastTime + WaitMin 后——所以「提竿」不会被盖住
+            text = Shown(text, fail[p.playerIndex], Time.time < failUntil[p.playerIndex], f?.State ?? FishState.Idle);   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖、天亮了……）整句换掉 Text，这人咬钩时除外（loop-17 Shown）
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
             Vector3 h = cam.WorldToScreenPoint(p.transform.position + Vector3.up * Config.HintHeight);
@@ -61,10 +73,9 @@ public partial class Hints
             GUI.Label(tr, ts[i], ink);
             if (ten[i] >= 0f) GUI.DrawTexture(new Rect(tr.x, r.yMax - Config.HintBar, tr.width * Mathf.Clamp01(ten[i]), Config.HintBar), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, ten[i] > Config.HintRed ? Config.Bobber : ink.normal.textColor, 0f, 0f);   // 收线：字条下沿一道张力条，宽 = 字条宽 × 张力，快满变 Bobber 红（loop-10）
         }
-        if (Hug.On && at.Length == 2)   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；loop-16 南北站位也画：中点投下去正落在北边那人的帽顶上，改往屏幕右侧偏 HugHeartSide，不压帽子和字条
+        if (Hug.On && at.Length == 2)   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；南北站位挪到北边那人右侧（loop-16 起画，loop-17 以北边那人为基准，见 Heart）
         {
-            bool ns = Hug.Below(at[0], at) || Hug.Below(at[1], at);
-            var m = cam.WorldToScreenPoint((at[0] + at[1]) * 0.5f + Vector3.up * Config.HugHeart + (ns ? cam.transform.right * Config.HugHeartSide : Vector3.zero));
+            var m = cam.WorldToScreenPoint(Heart(at[0], at[1]));
             ink.normal.textColor = ink.hover.textColor = Config.Bobber; GUI.Label(new Rect(m.x - 20f, Screen.height - m.y - 14f, 40f, 28f), "♥", ink);
         }
     }

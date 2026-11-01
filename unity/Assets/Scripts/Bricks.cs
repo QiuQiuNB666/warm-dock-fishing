@@ -68,6 +68,7 @@ public partial class Bricks : MonoBehaviour
 
     // loop-11 小灯塔：一格垒到第 MaxHeight 层，顶上那块用 M_glow（Spawn；读档 Rebuild 同样按记录判断）
     public static bool Lighthouse(BrickRecord r) => r.layer == Config.MaxHeight - 1;
+    public static int Towers(Stock s) => System.Linq.Enumerable.Count(s.bricks, Lighthouse);   // loop-17 场上几座小灯塔（每座只有顶块那条记录满足 Lighthouse）：夜里引灯笼鱼的几率按它算
 
     // 成功返回新记录（已扣砖、已记入 s.bricks、dirty），失败返回 null
     public static BrickRecord TryPlace(Stock s, Vector2Int c, int layer)

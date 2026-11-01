@@ -84,19 +84,27 @@ public class FishingStateMachine : MonoBehaviour
     int owner;   // 第几名玩家：P1 Space，P2 Keypad5
     float atSpot;
     int logged;   // 已经记进 Stock 的条数
+    System.Random roll;   // loop-17 掷灯笼鱼：自己一份（种子和 Logic 错开 1），不动 FishingLogic 的随机序列
+    TimeOfDay tod;
 
     // 钓上就记账：CaughtCount 比已记的多几条，就给这名玩家的生鱼加几条（每人各算各的）。FishingLogic 本身不碰 Stock。
-    public static int Credit(Stock s, int owner, int logged, int caught)
+    // loop-17 lantern = 这条是灯塔引来的灯笼鱼（Roll 掷中）：改记熟鱼（门口换 CookedBricks 砖），不加生鱼
+    public static int Credit(Stock s, int owner, int logged, int caught, bool lantern = false)
     {
-        if (caught > logged) s.Add(ItemType.RawFish, caught - logged, owner);
+        if (caught > logged) s.Add(lantern ? ItemType.CookedFish : ItemType.RawFish, caught - logged, owner);
         return Mathf.Max(logged, caught);
     }
+
+    // loop-17 灯笼鱼几率：天黑时每座小灯塔 +LanternPer，封顶 LanternMax；白天 0。钓上那一刻掷一次（rng 可注入，测试用几率 1 / 0 定结果）
+    public static float Chance(int towers, bool dark) => dark ? Mathf.Min(towers * Config.LanternPer, Config.LanternMax) : 0f;
+    public static bool Roll(float chance, System.Random rng) => rng.NextDouble() < chance;
 
     void Awake()
     {
         var ctx = GetComponent<PlayerContext>();
         owner = ctx != null ? ctx.playerIndex : 0;
-        Logic = new FishingLogic((Demo ? 7 : System.Environment.TickCount) + owner * 10007);
+        int seed = (Demo ? 7 : System.Environment.TickCount) + owner * 10007;
+        Logic = new FishingLogic(seed); roll = new System.Random(seed + 1); tod = FindAnyObjectByType<TimeOfDay>();
     }
 
     void Update()
@@ -112,8 +120,10 @@ public class FishingStateMachine : MonoBehaviour
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {
             Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");   // 实玩脚本靠这行判断钓上
-            logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount);
-            Hints.Say(owner, Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」；角上那行英文不动
+            bool lantern = Roll(Chance(Bricks.Towers(Stock.Current), tod != null && TimeOfDay.Dark(tod.t)), roll);   // loop-17 换鱼只在这层记账外壳里：PickFish 照旧挑，掷中这条就记成灯笼鱼
+            logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount, lantern);
+            Hints.Say(owner, lantern ? Hints.Lantern : Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」（loop-17 灯笼鱼说 Hints.Lantern）；角上那行英文不动
+            if (lantern) Debug.Log($"EVT lantern p{owner} towers={Bricks.Towers(Stock.Current)} t={Time.timeSinceLevelLoad:0.0}");
         }
     }
 

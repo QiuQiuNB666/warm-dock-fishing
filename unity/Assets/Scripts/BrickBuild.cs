@@ -39,7 +39,7 @@ public partial class Bricks
             if (r == null) { Hints.Say(i, BrickWhy.Say(why, p.fishing != null ? p.fishing.Logic.State : FishState.Idle)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置；loop-12 正在钓鱼不说（空串，Hints.Say 不记），免得把「空格 提竿！」换掉
             Spawn(r);
             Hints.Say(i, "放下一砖");   // loop-16 说在自己的字条位置（原来底部 Toast）；垒成小灯塔下一行那句盖过它
-            if (Lighthouse(r)) { Hints.Say(i, "垒成一座小灯塔"); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }
+            if (Lighthouse(r)) { Hints.Say(i, $"小灯塔亮了，夜里会引来{Config.LanternZh}"); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }
         }
     }
 }

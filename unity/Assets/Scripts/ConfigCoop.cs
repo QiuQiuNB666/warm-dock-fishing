@@ -99,6 +99,8 @@ public static partial class Config
     // loop-11 开局两张字条叠在一起时左右分开，中间留 HintGap px（原来 4 px，一眼分不出是两张）
     public const float HintGap = 12f;
     // loop-16 认得出自己：每张头顶字条左端一道 HintStripe px 宽、和字条等高的实色竖条，颜色 = HatDot[玩家]（不加新色）；
-    // 南北站位抱着时「♥」画在两人中点往屏幕右侧偏 HugHeartSide m（中点正投在北边那人的帽顶上），不压帽子和字条
-    public const float HintStripe = 6f, HugHeartSide = 0.6f;
+    // 南北站位抱着时「♥」的 x = 北边那人.x + HugHeartSide m（loop-17：原来中点 + 0.6，斜站时北边那人偏东又压回他的帽檐；帽檐半径 0.44 m，斜站 45° 内都在帽檐外）
+    public const float HintStripe = 6f, HugHeartSide = 0.7f;
+    // loop-17 灯塔引鱼：天黑（TimeOfDay.Dark：灯笼 Glow ≥ LanternDark，t ∈ [0.5, 0.875]）时每座小灯塔让钓上的那条有 LanternPer 的几率换成灯笼鱼（记熟鱼，门口换两砖），封顶 LanternMax；白天 0
+    public const float LanternPer = 0.15f, LanternMax = 0.6f, LanternDark = 0.5f;
 }

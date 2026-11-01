@@ -11,6 +11,8 @@ public class TimeOfDay : MonoBehaviour
     Material fireGlow, towerGlow, towerSide;   // loop-12 小灯塔顶块同法：底色都是 LampColor，towerGlow 顶面（夜里倍数 Config.TowerGlow）、towerSide 侧面（再 ×Config.TowerSide），Awake 交给 Bricks.glowTop / Bricks.glow，不再用共用 M_glow 的 ×4（夜里一整块没边的纯白）
     public float t;   // 0..1 一天；0=晨 0.25=午 0.5=昏 0.75=夜
     public bool frozen;   // 截图模式：不随时间走
+    PlayerManager pm;   // loop-17 天亮时看谁正在钓鱼（Dawn 跳过他）
+    readonly bool[] busy = new bool[KeyMap.Players.Length];
 
     static readonly int ColorId = Shader.PropertyToID("_Color");
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -32,7 +34,17 @@ public class TimeOfDay : MonoBehaviour
     }
 
     // loop-16「明天」名副其实：时间自己转过早晨那一刻（从夜里绕回 t = 0；T 键跳过去也算）→ 和睡醒一样重置树（Trees.NewDay）。返回跨没跨
-    public static bool Dawn(float was, float now) { if (now >= was) return false; Trees.NewDay(); return true; }
+    // loop-17 也和睡醒一样给两人说「天亮了」；busy[k] = 第 k 人正在钓鱼（不 Idle）就跳过他（null = 都说）
+    public static bool Dawn(float was, float now, bool[] busy = null)
+    {
+        if (now >= was) return false;
+        Trees.NewDay();
+        for (int k = 0; k < KeyMap.Players.Length; k++) if (busy == null || !busy[k]) Hints.Say(k, "天亮了");
+        return true;
+    }
+
+    // loop-17 天黑 = 灯笼亮过一半（Glow ≥ LanternDark）：t ∈ [0.5 黄昏那一档, 0.875 夜里往早晨走到一半]；小灯塔这时才引灯笼鱼
+    public static bool Dark(float t) => Evaluate(t).Glow >= Config.LanternDark;
 
     void Awake()   // loop-12：赶在 PierSave.Start 读档 Rebuild（Spawn 小灯塔顶块）之前把这两份材质交给 Bricks
     {
@@ -45,6 +57,7 @@ public class TimeOfDay : MonoBehaviour
     void Start()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+        pm = FindAnyObjectByType<PlayerManager>();
         if (fire != null && glow != null) { fireGlow = new Material(glow) { color = Config.LampColor }; fire.sharedMaterials = System.Array.ConvertAll(fire.sharedMaterials, m => m == glow ? fireGlow : m); }
 #if UNITY_WEBGL && !UNITY_EDITOR
         for (int i = Config.WebLamps; i < lamps.Length; i++) lamps[i].enabled = false;   // 网页端控制点光源数量
@@ -56,7 +69,8 @@ public class TimeOfDay : MonoBehaviour
     {
         float was = t;
         if (!frozen) t = Input.GetKeyDown(KeyCode.T) ? NextPhase(t) : Mathf.Repeat(t + Time.deltaTime / Config.DayLength, 1f);
-        if (Dawn(was, t)) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay）
+        if (pm != null) foreach (var p in pm.players) if (p != null && p.fishing != null) busy[p.playerIndex] = p.fishing.Busy;
+        if (Dawn(was, t, busy)) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay、自己说天亮了）
         Apply(Evaluate(t));
     }
 

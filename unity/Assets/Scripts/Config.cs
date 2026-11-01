@@ -77,6 +77,7 @@ public static partial class Config
     public const float WaitMin = 2f, WaitMax = 6f, BiteWindow = 1.5f, CastTime = 0.6f, ResultTime = 1.2f;
     public const float StartTension = 0.3f, PullTension = 0.6f, RelaxTension = 0.4f, PullProgress = 0.5f, SlipProgress = 0.05f;
     public static readonly string[] FishNames = { "sardine", "snapper", "puffer" };
+    public const string LanternZh = "灯笼鱼";   // loop-17 第 4 种鱼：只在记账外壳里出现（FishingStateMachine.Credit；FishNames / PickFish 不动），字条上说的中文名
     public static readonly string[] FishNamesZh = { "沙丁鱼", "鲷鱼", "河豚" };   // loop-16 和 FishNames 一一对应，只用于显示（钓上那一刻字条上说的那句）；角上那行英文照旧用 FishNames
     public static readonly Bait[] Baits =
     {
