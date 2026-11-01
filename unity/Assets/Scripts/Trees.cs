@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEngine;
 
 // 砍树（挂在 Nature 上，子物体里名叫 Tree 的就是树，生成顺序 = 树号）：人离树干（树的 XZ 位置）≤ ChopRange 按 E（P2 小键盘 1）砍一下，
-// 树绕树根晃一下；满 ChopHits 下得 1 木，进两人共用的 Stock.wood。每棵每天只出 1 木，再砍只提示「这棵明天再砍」；睡醒（Sleep.ToMorning）全部重置。
+// 树绕树根晃一下；满 ChopHits 下得 1 木，进两人共用的 Stock.wood。每棵每天只出 1 木，再砍只提示「这棵明天再砍」；睡醒（Sleep.ToMorning）或时间自己转过早晨（TimeOfDay.Dawn，loop-16）全部重置。
 // 砍的状态不进存档。E 同一时刻只做一件事：门口有鱼先换砖（Bricks.Trade，熟鱼优先），否则火边有生鱼就烤（loop-9 Cook），否则砍够得着的最近一棵，都不是就什么都不做。
 public class Trees : MonoBehaviour
 {
@@ -14,9 +14,12 @@ public class Trees : MonoBehaviour
     Quaternion[] rest;
     float[] shake;
     PlayerManager players;
-    Bricks bricks;
 
-    public static void NewDay() => System.Array.Clear(Hits, 0, Hits.Length);   // 睡醒：所有树重置
+    public static void NewDay() => System.Array.Clear(Hits, 0, Hits.Length);   // 睡醒、天亮（TimeOfDay.Dawn）：所有树重置
+
+    // E 这一下说什么（loop-16 从底部 Toast 挪到这人自己的字条位置，字不改）：换了 n 块砖；砍的第 h 下（0 = 这棵今天出过木）；别的不说（null，Hints.Say 不记）
+    public static string TradeSay(int n) => n > 1 ? "换得两砖" : "换得一砖";
+    public static string ChopSay(int h) => h == 0 ? "这棵明天再砍" : h == Config.ChopHits ? "得一木" : null;
 
     // 够得着（XZ 距离 ≤ ChopRange）、人站在树南侧（z ≤ 树干 z + ChopSouth，loop-7：北侧会被树冠挡住）的最近一棵的下标；都不是返回 -1
     public static int Nearest(Vector3[] trees, Vector3 p)
@@ -63,7 +66,7 @@ public class Trees : MonoBehaviour
 
     void Start()
     {
-        players = FindAnyObjectByType<PlayerManager>(); bricks = FindAnyObjectByType<Bricks>();
+        players = FindAnyObjectByType<PlayerManager>();
         trees = transform.Cast<Transform>().Where(t => t.name == "Tree").ToArray();
         Pos = trees.Select(t => t.position).ToArray();
         rest = trees.Select(t => t.rotation).ToArray();
@@ -86,17 +89,15 @@ public class Trees : MonoBehaviour
             if (p == null || !p.isActiveAndEnabled || Hug.On || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;   // loop-14 抱着不读 E
             int i = p.playerIndex, b = Stock.Current.brick;   // 换了几块砖 = 换砖前后的砖数差（熟鱼一条换两砖；loop-10 不再另数一遍熟鱼）
             int k = Interact(Stock.Current, i, p.transform.position, Pos), n = Stock.Current.brick - b;
-            if (k == Traded) { Toast(n > 1 ? "换得两砖" : "换得一砖"); TradedOnce[i] = true; Debug.Log($"EVT trade p{i} bricks={n}"); }
+            if (k == Traded) { Hints.Say(i, TradeSay(n)); TradedOnce[i] = true; Debug.Log($"EVT trade p{i} bricks={n}"); }
             if (k == Cooked) { Hints.Say(i, "烤好一条"); CookedOnce[i] = true; Debug.Log($"EVT cook p{i}"); }   // loop-9：说在自己的字条位置（同钓鱼失败那句），不走底部 Toast
             if (k == NoWood) Hints.Say(i, "没柴了，去砍树");
             if (k < 0) continue;   // 换了砖、烤了鱼（或没柴），或不在树旁也不在门口
             int h = Chop(Stock.Current, Hits, k);
-            if (h == 0) { Toast("这棵明天再砍"); continue; }
+            Hints.Say(i, ChopSay(h));   // loop-16「这棵明天再砍」「得一木」说在自己的字条位置（原来底部 Toast）
+            if (h == 0) continue;
             shake[k] = Config.ChopShakeSec;
             Debug.Log($"EVT chop p{p.playerIndex} tree={k} hits={h}");
-            if (h == Config.ChopHits) Toast("得一木");
         }
     }
-
-    void Toast(string text) { if (bricks != null) bricks.Toast(text); }
 }

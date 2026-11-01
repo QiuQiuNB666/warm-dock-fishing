@@ -31,6 +31,9 @@ public class TimeOfDay : MonoBehaviour
         return Mathf.Repeat((Mathf.Floor(Mathf.Repeat(t01, 1f) * n + 1e-4f) + 1f) / n, 1f);
     }
 
+    // loop-16「明天」名副其实：时间自己转过早晨那一刻（从夜里绕回 t = 0；T 键跳过去也算）→ 和睡醒一样重置树（Trees.NewDay）。返回跨没跨
+    public static bool Dawn(float was, float now) { if (now >= was) return false; Trees.NewDay(); return true; }
+
     void Awake()   // loop-12：赶在 PierSave.Start 读档 Rebuild（Spawn 小灯塔顶块）之前把这两份材质交给 Bricks
     {
         var b = FindAnyObjectByType<Bricks>();
@@ -51,7 +54,9 @@ public class TimeOfDay : MonoBehaviour
 
     void Update()
     {
+        float was = t;
         if (!frozen) t = Input.GetKeyDown(KeyCode.T) ? NextPhase(t) : Mathf.Repeat(t + Time.deltaTime / Config.DayLength, 1f);
+        if (Dawn(was, t)) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay）
         Apply(Evaluate(t));
     }
 

@@ -113,8 +113,7 @@ public class PierSave : MonoBehaviour
         foreach (var p in pm.players)   // 床边按 R（P2 小键盘 4）
             if (p != null && p.isActiveAndEnabled && !Hug.On && InputManager2P.Pressed(KeyMap.Players[p.playerIndex].R) && Sleep.NearBed(p.transform.position))   // loop-14 抱着不读 R
             {
-                Sleep.ToMorning(tod, pm);
-                if (bricks != null) bricks.Toast("天亮了");
+                Sleep.ToMorning(tod, pm);   // 两人头顶说「天亮了」也在里面（loop-16，原来底部 Toast）
                 break;
             }
     }

@@ -113,6 +113,7 @@ public class FishingStateMachine : MonoBehaviour
         {
             Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");   // 实玩脚本靠这行判断钓上
             logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount);
+            Hints.Say(owner, Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」；角上那行英文不动
         }
     }
 

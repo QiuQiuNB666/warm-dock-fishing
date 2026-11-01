@@ -41,8 +41,8 @@ public class PlayTests2
 
     // loop-6 教学提示：钓鱼时只在咬钩、收线两步提示，键名各用各的；兜底排在能做的事后面补位，做过一次就不再出
     static Vector3 Sand => PlayTests.Open;   // 床和树之间的空沙地：没砖、没树，什么都做不成
-    static string Teach(Stock s, int player, Vector3 p, FishState f = FishState.Idle, bool fished = false, bool traded = false) =>
-        Hints.Text(s, player, p, Vector3.forward, new Vector3[0], new int[0], f, fished, traded);
+    static string Teach(Stock s, int player, Vector3 p, FishState f = FishState.Idle, bool fished = false, bool traded = false, bool evening = true) =>
+        Hints.Text(s, player, p, Vector3.forward, new Vector3[0], new int[0], f, fished, traded, evening: evening);
 
     [Test] public void HintFishingP1()
     {
@@ -76,11 +76,11 @@ public class PlayTests2
         Assert.AreEqual("E 换砖", Teach(s, 0, Config.DoorPos), "门口有鱼：只列换砖，不再补「拿生鱼回小屋门口换砖」");
     }
 
-    // loop-6 修补：出生点（床边，新开局没砖）还没钓上过 → 睡觉后面补位「去码头尽头钓鱼」
+    // loop-6 修补：出生点（床边，新开局没砖）还没钓上过 → 补位「去码头尽头钓鱼」。loop-16 有意改规则：开局是早晨，黄昏前床边不列睡觉，只剩这一句（原断言「R 睡觉　WASD 走…」；入夜床边、两人挨着能抱（Teach 不传 hug）见 PlayTests5）
     [Test] public void HintSpawnFallback()
     {
-        Assert.AreEqual("R 睡觉　WASD 走去码头尽头钓鱼", Teach(new Stock(), 0, Config.BedPos), "P1 出生点");
-        Assert.AreEqual("Num4 睡觉　方向键走去码头尽头钓鱼", Teach(new Stock(), 1, PlayTests.P2Bed), "P2 出生点");
+        Assert.AreEqual("WASD 走去码头尽头钓鱼", Teach(new Stock(), 0, Config.BedPos, evening: false), "P1 出生点");
+        Assert.AreEqual("方向键走去码头尽头钓鱼", Teach(new Stock(), 1, PlayTests.P2Bed, evening: false), "P2 出生点");
     }
 
     // loop-7 别把路堵死：码头入口保留区（码头根部朝沙滩 3 格深、比码头左右各宽 1 格）和小屋门口那一格不能放，保留区外紧挨着的一格能放

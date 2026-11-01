@@ -3,16 +3,14 @@ using UnityEngine;
 
 // 砖：在小屋门口按 E（P2 小键盘 1）用自己的一条生鱼换一块（loop-9：有熟鱼先用熟鱼，一条换两块），进两人共用的 Stock；没鱼、不在门口都不做事。E 由 Trees 统一读（门口有鱼先换砖，否则火边烤鱼，否则砍树）。
 // B（P2 小键盘 2）往面前那一格放一块：只放在沙滩上、IsWalkable 为真、不在码头上、没被床/小屋/树干等占着、不在码头入口和门口的保留区、没人站着、放下不切断去码头的路（BrickPath）的格子；先从库存扣 1 块砖，同格往上垒，最多 MaxHeight 层。
-// 边长 0.9、陶土色（垒满 MaxHeight 层的顶块用 M_glow = 小灯塔，loop-11）。成功后底部出现 1.5 秒提示，放不下按原因在自己字条位置说一句（BrickWhy，loop-11）；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
+// 边长 0.9、陶土色（垒满 MaxHeight 层的顶块用 M_glow = 小灯塔，loop-11）。成功后在自己字条位置说「放下一砖」（loop-16，原来底部 1.5 秒提示），放不下按原因在自己字条位置说一句（BrickWhy，loop-11）；顶部正中常驻一行两人共用的「砖 n　木 n」。读档后由 PierSave 调 Rebuild 按记录重建。
 public partial class Bricks : MonoBehaviour
 {
     public Material material, glow, glowTop;   // 陶土色；glow = 小灯塔的顶块（loop-11）：BuildScene 先给共用 M_glow，运行时 TimeOfDay.Awake 换成它自己的一份（底色 LampColor、倍数 TowerGlow×TowerSide，loop-12），亮度跟时段走；glowTop = 顶面另贴的那片（倍数 TowerGlow，比侧面亮；没给就整块 glow）
-    public Font font;   // 网页端没有系统字体回退：「放下一砖」用 Assets/Fonts 的思源黑体子集（WarmCJK）
+    public Font font;   // 网页端没有系统字体回退：顶部「砖 n　木 n」用 Assets/Fonts 的思源黑体子集（WarmCJK）
     public GameObject cabin;   // BuildScene 赋值：小屋占着的格子也不能放砖
     PlayerManager players;
     Transform root;
-    float toast;
-    string toastText;
     GUIStyle style;
 
     public static bool AtDoor(Vector3 p) => Vector2.Distance(new Vector2(p.x, p.z), new Vector2(Config.DoorPos.x, Config.DoorPos.z)) <= Config.InteractRange;
@@ -95,13 +93,11 @@ public partial class Bricks : MonoBehaviour
         Debug.Log($"BRICK-BLOCKERS {Blockers.Count}");
     }
 
-    public void Toast(string text) { toastText = text; toast = 1.5f; }   // 底部 1.5 秒提示（PierSave 睡醒、Trees 换砖砍树也用它）
-
+    // loop-16 底部 1.5 秒提示（Toast）删了：放砖、换砖、砍树、睡醒那几句都改成 Hints.Say 说在各人自己的字条位置
     void OnGUI()
     {
-        if (Pause.On) return;   // 暂停时顶部库存和底部提示都不画
+        if (Pause.On) return;   // 暂停时顶部库存不画
         style ??= new GUIStyle(GUI.skin.box) { fontSize = 22, alignment = TextAnchor.MiddleCenter, font = font };
         GUI.Box(new Rect((Screen.width - 200f) * 0.5f, 8f, 200f, Config.TopBarBottom - 8f), $"砖 {Stock.Current.brick}　木 {Stock.Current.wood}", style);   // 顶部正中，左上/右上的字让开
-        if (toast > 0f) GUI.Box(new Rect((Screen.width - 220f) * 0.5f, Screen.height - 110f, 220f, 44f), toastText, style);
     }
 }

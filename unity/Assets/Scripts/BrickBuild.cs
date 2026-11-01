@@ -26,7 +26,6 @@ public partial class Bricks
 
     void Update()
     {
-        if (toast > 0f) toast -= Time.deltaTime;
         if (Pause.On || players == null) return;
         foreach (var p in players.players)
         {
@@ -39,7 +38,7 @@ public partial class Bricks
             Debug.Log($"EVT build p{i} cell={c.x},{c.y} {(r != null ? "ok" : "no " + why)}");   // 实玩查面前是哪一格、放没放、为什么
             if (r == null) { Hints.Say(i, BrickWhy.Say(why, p.fishing != null ? p.fishing.Logic.State : FishState.Idle)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置；loop-12 正在钓鱼不说（空串，Hints.Say 不记），免得把「空格 提竿！」换掉
             Spawn(r);
-            Toast("放下一砖");
+            Hints.Say(i, "放下一砖");   // loop-16 说在自己的字条位置（原来底部 Toast）；垒成小灯塔下一行那句盖过它
             if (Lighthouse(r)) { Hints.Say(i, "垒成一座小灯塔"); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }
         }
     }

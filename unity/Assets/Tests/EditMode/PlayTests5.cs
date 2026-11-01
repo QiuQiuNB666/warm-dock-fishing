@@ -53,17 +53,20 @@ public class PlayTests5
         finally { Hug.Since = keep; }
     }
 
-    // 开局床边两人挨着仍是「R 睡觉　WASD 走…」（没有 H 抱抱）；钓过鱼、空着一格才补；P2 叫 Num3；不能抱就不列
+    // 入夜床边两人挨着是「R 睡觉　WASD 走…」（没有 H 抱抱）；钓过鱼、空着一格才补；P2 叫 Num3；不能抱就不列。
+    // loop-16 有意改规则：开局是早晨，黄昏前床边不列睡觉（原来开局就是上面那两句）；空出来的那格不给 H 抱抱补（床边还没钓过鱼不补），开局两人挨着能抱也只剩走路兜底
     [Test]
     public void HugHintOnlyFillsFreeSlot()
     {
         var s = new Stock();
-        string Hint(int player, Vector3 p, bool fished, bool hug = true) => Hints.Text(s, player, p, Vector3.forward, new Vector3[0], new int[0], FishState.Idle, fished, false, hug: hug);
+        string Hint(int player, Vector3 p, bool fished, bool hug = true, bool evening = true) => Hints.Text(s, player, p, Vector3.forward, new Vector3[0], new int[0], FishState.Idle, fished, false, hug: hug, evening: evening);
         Vector3 bed = Sleep.Bed, bed2 = Sleep.Bed + Config.P2BedOffset;
         Assert.AreEqual("R 睡觉　WASD 走去码头尽头钓鱼", Hint(0, bed, false));
         Assert.AreEqual("Num4 睡觉　方向键走去码头尽头钓鱼", Hint(1, bed2, false));
         Assert.AreEqual("R 睡觉　H 抱抱", Hint(0, bed, true));
         Assert.AreEqual("Num4 睡觉　Num3 抱抱", Hint(1, bed2, true));
+        Assert.AreEqual("WASD 走去码头尽头钓鱼", Hint(0, bed, false, evening: false), "开局（早晨）床边");
+        Assert.AreEqual("方向键走去码头尽头钓鱼", Hint(1, bed2, false, evening: false));
         Assert.AreEqual("WASD 走去码头尽头钓鱼　H 抱抱", Hint(0, Sand, false));
         Assert.AreEqual("H 抱抱", Hint(0, Sand, true));
         Assert.AreEqual("", Hint(0, Sand, true, false));

@@ -98,4 +98,7 @@ public static partial class Config
     public const float TowerSide = 0.7f;
     // loop-11 开局两张字条叠在一起时左右分开，中间留 HintGap px（原来 4 px，一眼分不出是两张）
     public const float HintGap = 12f;
+    // loop-16 认得出自己：每张头顶字条左端一道 HintStripe px 宽、和字条等高的实色竖条，颜色 = HatDot[玩家]（不加新色）；
+    // 南北站位抱着时「♥」画在两人中点往屏幕右侧偏 HugHeartSide m（中点正投在北边那人的帽顶上），不压帽子和字条
+    public const float HintStripe = 6f, HugHeartSide = 0.6f;
 }
