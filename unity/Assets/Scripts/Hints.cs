@@ -68,6 +68,8 @@ public partial class Hints : MonoBehaviour
     // loop-16 钓上那一刻在这人自己的字条位置说的那句（FishingStateMachine 记账处调 Say）：中文鱼名查 Config.FishNamesZh（和 FishNames 一一对应）
     public static string Caught(string fish) => $"钓上一条{Config.FishNamesZh[System.Array.IndexOf(Config.FishNames, fish)]}！";
     public static string Lantern => $"灯塔引来一条{Config.LanternZh}！";   // loop-17 夜里被灯塔引来的那条（记熟鱼）代替上面那句
+    public static string Tower => $"小灯塔垒好了，夜里会引来{Config.LanternZh}";   // loop-18 垒成小灯塔那一下放砖那人说的那句（BrickBuild；loop-19「亮了」改「垒好了」，字挪到这里测试锁得住）
+    public static float Secs(string text) => text == Tower || text == Lantern ? Config.HintLong : Config.HintFail;   // loop-19 这句说几秒（Say 的 secs）：上面两句长，留 HintLong 读得完；其余 HintFail
 
     void Start() { players = FindAnyObjectByType<PlayerManager>(); tod = FindAnyObjectByType<TimeOfDay>(); cam = Camera.main; }
 

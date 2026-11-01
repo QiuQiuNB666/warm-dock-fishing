@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // 晨/午/昏/夜平滑插值：太阳角度与颜色、三色环境光、水面颜色、夜灯（灯笼/小屋窗的点光源 + 发光材质）。
@@ -43,10 +45,12 @@ public class TimeOfDay : MonoBehaviour
 
     // loop-18 原 Update 里抄各人 busy 的那段提成静态（接线测试抓得到）：fish[k] 不 Idle = 第 k 人正在钓鱼；天亮、睡醒都按它跳过人（Hints.Morning）
     public static bool[] Busy(FishState[] fish) => System.Array.ConvertAll(fish, f => f != FishState.Idle);
-    public static FishState[] Fish(PlayerManager pm)   // 各人此刻的钓鱼状态，按玩家号放；没有 PlayerManager、缺人都算 Idle
+    public static FishState[] Fish(PlayerManager pm) =>   // 各人此刻的钓鱼状态：在场各人映成 (玩家号, 状态) 交给 ByPlayer；没有 PlayerManager 都算 Idle
+        ByPlayer(pm == null ? null : pm.players.Where(p => p != null && p.fishing != null).Select(p => (p.playerIndex, p.fishing.Logic.State)));
+    public static FishState[] ByPlayer(IEnumerable<(int who, FishState state)> ps)   // loop-19 按玩家号放（纯函数，测得到）：对子可乱序、可缺人，缺的算 Idle
     {
         var s = new FishState[KeyMap.Players.Length];
-        if (pm != null) foreach (var p in pm.players) if (p != null && p.fishing != null) s[p.playerIndex] = p.fishing.Logic.State;
+        if (ps != null) foreach (var (k, f) in ps) s[k] = f;
         return s;
     }
 
@@ -76,7 +80,7 @@ public class TimeOfDay : MonoBehaviour
     {
         float was = t;
         if (!frozen) t = Input.GetKeyDown(KeyCode.T) ? NextPhase(t) : Mathf.Repeat(t + Time.deltaTime / Config.DayLength, 1f);
-        if (Dawn(was, t, Busy(Fish(pm)))) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay、自己 Hints.Morning）
+        if (t < was && Dawn(was, t, Busy(Fish(pm)))) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // loop-19 只在绕回早晨那一帧才算 busy（不每帧新建数组）；睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay、自己 Hints.Morning）
         Apply(Evaluate(t));
     }
 

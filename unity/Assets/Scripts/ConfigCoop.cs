@@ -50,7 +50,7 @@ public static partial class Config
     public const float InteractRange = 2f, HugRange = 1.5f;
     // loop-13 拥抱：两人 XZ ≤ HugRange 按 H 一起抱 HugTime 秒；双臂进出各 HugBlend 秒平滑。姿势 = 大臂朝 HugUpper、小臂朝 HugFore（角色本地：x 往外为正、y 上、z 前；左右臂 x 镜像）
     // loop-14：开始后 HugClose 秒内两人沿连线各往中点挪，间距收到 HugGap（帽檐半径 0.44 m（rig.py BRIM）×2 = 0.88 m 以外，两顶帽檐不交叠；胶囊 PlayerRadius×2 = 0.7 m 自然也不撞）；抱着和抱完 HugCooldown 秒内不能再抱；大臂少张、几乎朝前，小臂朝前略偏内（HugGap 0.9 m 时手越过中线约 6 cm，两人小臂在镜头那一侧交叉；原来的往外张在 0.9 m 只够两只拳头在中线碰头，像碰拳）；
-    // 抱前就朝着对方（点积 > HugFaced）的人抱完转向和两人连线垂直的一侧（左右为主取离镜头近的，并排即镜头；南北为主两人都取西），不再转回去对着（两根竿交叉）；抱着时两人头顶中间 HugHeart 高处画一个「♥」（南北站位不画）
+    // 抱前就朝着对方（点积 > HugFaced）的人抱完转向和两人连线垂直的一侧（左右为主取离镜头近的，并排即镜头；南北为主两人都取西），不再转回去对着（两根竿交叉）；抱着时两人头顶中间 HugHeart 高处画一个「♥」（南北站位放在北边那人背对南边那人的一侧 HugHeartSide）；南北为主 = Hug.NorthSouth（转向和 ♥ 同一套，阈值 HugNorthSouth）
     public const float HugTime = 1.5f, HugBlend = 0.15f, HugClose = 0.25f, HugGap = 0.9f, HugCooldown = 2f, HugFaced = 0.7f, HugHeart = 2.1f;
     public static readonly Vector3 HugUpper = new Vector3(0.3f, -0.15f, 0.94f), HugFore = new Vector3(-0.1f, 0f, 1f);
     // loop-1 砍树：人离树干（树的 XZ 位置）≤ ChopRange 按 E 砍一下（树干碰撞盒挡着人，站旁边要够得着），满 ChopHits 下得 1 木；
@@ -66,7 +66,7 @@ public static partial class Config
     public const int HintFont = 16, HintMax = 2;
     // loop-6 修补：字条上沿不高于 HintTop（顶部正中「砖 n　木 n」框 Bricks.OnGUI y 8–TopBarBottom 的下沿再留 4 px；loop-10 两边共用 TopBarBottom），头顶放不下就画到脚下 HintFeetGap px，
     // 从脚下换回头顶要比 HintTop 再低 HintBack px（loop-10 回差，免得在边界上来回跳）；兜底（走去码头尽头钓鱼 / 拿鱼去换砖、去烤）站定 HintStill 秒才画；
-    // 钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s；loop-18 垒成小灯塔那句长，留 HintLong 秒）；收线时字条下沿一道 HintBar px 高的张力条，张力 > HintRed 变 Bobber 红（loop-10）
+    // 钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s；loop-18 垒成小灯塔那句长、loop-19 钓上灯笼鱼那句也长，留 HintLong 秒）；收线时字条下沿一道 HintBar px 高的张力条，张力 > HintRed 变 Bobber 红（loop-10）
     public const float TopBarBottom = 48f, HintTop = TopBarBottom + 4f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f, HintLong = 3f, HintBack = 8f, HintBar = 4f, HintRed = 0.8f;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
@@ -99,8 +99,10 @@ public static partial class Config
     // loop-11 开局两张字条叠在一起时左右分开，中间留 HintGap px（原来 4 px，一眼分不出是两张）
     public const float HintGap = 12f;
     // loop-16 认得出自己：每张头顶字条左端一道 HintStripe px 宽、和字条等高的实色竖条，颜色 = HatDot[玩家]（不加新色）；
-    // 南北站位抱着时「♥」的 x = 北边那人.x + HugHeartSide m（loop-17：原来中点 + 0.6，斜站时北边那人偏东又压回他的帽檐；帽檐半径 0.44 m，斜站 45° 内都在帽檐外）
+    // 南北站位抱着时「♥」放在北边那人背对南边那人的一侧 HugHeartSide（m）；南北 = Hug.NorthSouth（见 Hints.Heart。loop-17 起：原来中点 + 0.6，斜站时北边那人偏东又压回他的帽檐；帽檐半径 0.44 m）
     public const float HintStripe = 6f, HugHeartSide = 0.7f;
+    // loop-19 南北站位的阈值（Hug.NorthSouth）：≈tan15°，南北差 > 东西差 × 它就算南北站位，斜站约 75° 内；♥ 的位置、靠南那人字条走脚下、抱完转向共用
+    public const float HugNorthSouth = 0.27f;
     // loop-17 灯塔引鱼：天黑（TimeOfDay.Dark：灯笼 Glow ≥ LanternDark，t ∈ [0.5, 0.875]）时每座小灯塔让钓上的那条有 LanternPer 的几率换成灯笼鱼（记熟鱼，门口换两砖），封顶 LanternMax；白天 0
     public const float LanternPer = 0.15f, LanternMax = 0.6f, LanternDark = 0.5f;
 }

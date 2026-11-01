@@ -39,7 +39,7 @@ public partial class Bricks
             if (r == null) { Hints.Say(i, BrickWhy.Say(why, p.fishing != null ? p.fishing.Logic.State : FishState.Idle)); continue; }   // loop-11：放不下按原因说一句，在自己字条位置；loop-12 正在钓鱼不说（空串，Hints.Say 不记），免得把「空格 提竿！」换掉
             Spawn(r);
             Hints.Say(i, "放下一砖");   // loop-16 说在自己的字条位置（原来底部 Toast）；垒成小灯塔下一行那句盖过它
-            if (Lighthouse(r)) { Hints.Say(i, $"小灯塔亮了，夜里会引来{Config.LanternZh}", Config.HintLong); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }   // loop-18 这句长，留 HintLong 秒读得完
+            if (Lighthouse(r)) { Hints.Say(i, Hints.Tower, Hints.Secs(Hints.Tower)); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }   // loop-18 这句长，留 HintLong 秒读得完；loop-19「亮了」改「垒好了」：白天塔顶不亮，说亮了会让人去找（字和秒数在 Hints.Tower / Hints.Secs，测试锁得住）
         }
     }
 }

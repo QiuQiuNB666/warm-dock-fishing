@@ -2,7 +2,7 @@ using UnityEngine;
 
 // loop-13 拥抱：两人 XZ 相距 ≤ HugRange、都没在钓鱼（Idle）、没暂停，任一人按 H（P2 Num3）→ 两人一起抱 HugTime 秒。不加数值、不加奖励；条件不满足按 H 什么都不做（不说话）。
 // 抱的时候：PlayerController 不读移动、转身面对面（Facing；沿用它 12/s 的朝向平滑，约 0.2 s 转过去）；FishingStateMachine 不抛竿；Trees / Bricks / PierSave 不读 E / B / R（loop-14）；
-// CharacterRig 在 LateUpdate 给两侧大臂/小臂叠「双臂环抱」（权重 Weight，进出各 HugBlend 秒）、藏鱼竿；两人头顶各说「抱一下」（Hints.Say，留 HintFail = 1.5 s），左右并排时中间画「♥」（Hints）。
+// CharacterRig 在 LateUpdate 给两侧大臂/小臂叠「双臂环抱」（权重 Weight，进出各 HugBlend 秒）、藏鱼竿；两人头顶各说「抱一下」（Hints.Say，留 HintFail = 1.5 s），中间画「♥」（Hints.Heart：北边那人背对南边那人的一侧 HugHeartSide；南北 = Hug.NorthSouth）。
 // loop-14：开始后 HugClose 秒内两人沿连线各往中点挪（Pull；PlayerController 照旧走 CharacterController.Move，碰撞照旧挡），间距收到 HugGap，抱完留在原地；
 // 抱着和抱完 HugCooldown 秒内不能再抱（Can）；抱完 PlayerController 转向 Back（抱前的朝向；抱前就朝着对方的转向和连线垂直的一侧：左右为主取离镜头近的、南北为主两人都取西，免得两根竿交叉，见 After）；「H 抱抱」抱过一次（Once）就不再提示。
 // 挂在 Game 上（BuildScene）。状态是静态的：只有两个人，抱总是两人一起。
@@ -33,18 +33,21 @@ public class Hug : MonoBehaviour
     public static Vector3 Step(int i, float now, float dt) => Pull[i] * (Walked(Since, now) - Walked(Since, now - dt));
 
     // 抱完转向哪：抱前就朝着对方（点积 > HugFaced，约 45° 内）就转向和两人连线垂直的一侧，免得转回去又对着、两根竿交叉；没朝着对方的转回抱前的朝向。
-    // 左右为主取离镜头近（z 小）的一侧，并排算出来就是镜头 Vector3.back；南北为主（|facing.z| > |facing.x|，即 Below 成立的站位）两人都取西（x<0）：握竿的右手都在各自北侧、藏在自己帽檐下，
+    // 左右为主取离镜头近（z 小）的一侧，并排算出来就是镜头 Vector3.back；南北为主 = Hug.NorthSouth（斜站约 75° 内；loop-19 起同 ♥、字条走脚下，原来只认 45° 内）两人都取西（x<0）：握竿的右手都在各自北侧、藏在自己帽檐下，
     // 两根竿平行（原来取 z 小的一侧，北边那人稍偏东两人就都转东，他的右手落在南侧、被南边那人的帽子挡住，竿像从南边那人帽沿伸出来）
     public static Vector3 After(Vector3 before, Vector3 facing)
     {
         if (Vector3.Dot(before, facing) <= Config.HugFaced) return before;
         var side = new Vector3(facing.z, 0f, -facing.x);
-        if (Mathf.Abs(facing.z) > Mathf.Abs(facing.x)) return side.x < 0f ? side : -side;
+        if (NorthSouth(Vector3.zero, facing)) return side.x < 0f ? side : -side;
         return side.z < 0f ? side : -side;
     }
 
-    // 南北站位时屏幕上靠下（z 小、离镜头近）的那人：对方在北边，且南北差大于东西差（Hints 把他的字条画到脚下，不压对方的帽子）
-    public static bool Below(Vector3 me, Vector3[] all) { foreach (var o in all) if (o.z - me.z > Mathf.Abs(o.x - me.x)) return true; return false; }
+    // loop-19 南北站位只这一套判断（♥ 的位置 Hints.Heart、靠南那人字条走脚下 Hints.Low 经 Below、抱完转向 After 都用它）：南北差 > 东西差 × Config.HugNorthSouth（≈tan15°，斜站约 75° 内都算）
+    public static bool NorthSouth(Vector3 a, Vector3 b) => Mathf.Abs(a.z - b.z) > Mathf.Abs(a.x - b.x) * Config.HugNorthSouth;
+
+    // 南北站位时屏幕上靠下（z 小、离镜头近）的那人：有人在他北边、且两人南北站位（NorthSouth；loop-19 起同 ♥，原来只认 45° 内）（Hints 把他的字条画到脚下，不压对方的帽子）
+    public static bool Below(Vector3 me, Vector3[] all) { foreach (var o in all) if (o.z > me.z && NorthSouth(me, o)) return true; return false; }
 
     public static bool Active(float since, float now) => now >= since && now < since + Config.HugTime;
 

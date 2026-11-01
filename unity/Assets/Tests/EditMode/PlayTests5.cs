@@ -117,6 +117,15 @@ public class PlayTests5
         Assert.IsFalse(Hints.Low(false, Sand, new[] { Sand, Sand + Vector3.forward * (Config.HugRange + 0.5f) }), "南北离得远（> HugRange）不走脚下");
     }
 
+    // loop-19 南北只一套（Hug.NorthSouth，同 ♥）：50° 斜站挨着，靠南那人的字条也走脚下（原 Hug.Below 只认 45° 内，字条压北边那人的帽子）
+    [Test]
+    public void LowSlant50()
+    {
+        var n = Sand + new Vector3(Mathf.Sin(50f * Mathf.Deg2Rad), 0f, Mathf.Cos(50f * Mathf.Deg2Rad)) * Config.HugGap;
+        Assert.IsTrue(Hints.Low(false, Sand, new[] { Sand, n }), "50° 斜站：靠南那人走脚下");
+        Assert.IsFalse(Hints.Low(false, n, new[] { Sand, n }), "北边那人照旧头顶");
+    }
+
     // loop-14 修补二：南北为主时两人都转西（握竿的右手在各自北侧、藏在自己帽檐下）；北边那人偏东 0.1 m 也一样（原来取 z 小的一侧，一偏东两人就都转东）
     [Test]
     public void HugNorthSouthTurnsWest()
@@ -128,5 +137,13 @@ public class PlayTests5
             Assert.Less(s.x, 0f, $"南边那人转西 dx={dx}"); Assert.Less(n.x, 0f, $"北边那人转西 dx={dx}");
             Assert.AreEqual(s, n, $"两人转同一侧，竿平行 dx={dx}");
         }
+    }
+
+    // loop-19 抱完转向的南北也是 Hug.NorthSouth（同 ♥、字条走脚下）：50° 斜站、北边那人偏东，面对面抱完两人都转西、转同一侧（原来只认 45° 内，这里两人都转东，北边那人握竿的右手落在南边那人那一侧）
+    [Test] public void HugSlant50TurnsWest()
+    {
+        var n = Sand + new Vector3(Mathf.Sin(50f * Mathf.Deg2Rad), 0f, Mathf.Cos(50f * Mathf.Deg2Rad)) * Config.HugGap;
+        Vector3 fs = Hug.Face(Sand, n), fn = Hug.Face(n, Sand), s = Hug.After(fs, fs), m = Hug.After(fn, fn);
+        Assert.Less(s.x, 0f, "南边那人转西"); Assert.Less(m.x, 0f, "北边那人转西"); Assert.AreEqual(s, m, "两人转同一侧，竿平行");
     }
 }

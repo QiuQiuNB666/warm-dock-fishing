@@ -21,21 +21,20 @@ public partial class Hints
     // 字条画到脚下吗（loop-10 回差）：头顶位置 headY（字条上沿）高过 HintTop 就到脚下；已在脚下的要比 HintTop 再低 HintBack px 才回头顶，免得在边界上来回跳
     public static bool Feet(bool was, float headY) => headY < Config.HintTop + (was ? Config.HintBack : 0f);
 
-    // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
+    // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below；南北 = Hug.NorthSouth，同 ♥）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
     public static bool Low(bool feet, Vector3 me, Vector3[] all) => feet || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
 
     // loop-17 所有 Say 共用的这一处：刚说过一句（saying）就整句换掉提示，只有这人正咬钩时照常画「空格 提竿！」——另一人睡醒 / 天亮说的「天亮了」原会把它换掉 1.5 s（= BiteWindow），鱼必跑。
     // 收线时照换：张力条按 ten[] 另画，不受影响
     public static string Shown(string text, string said, bool saying, FishState fish) => saying && fish != FishState.Bite ? said : text;
 
-    // loop-17 抱着时「♥」的世界位置：两人中点上方 HugHeart；南北站位 x 改取北边那人身旁 HugHeartSide，不压他的帽檐（loop-16 取中点 + 0.6 m，北边那人偏东时又压回去）。
-    // loop-18 放在北边那人背对南边那人的一侧（x = 北.x − sign(南.x − 北.x)·HugHeartSide，正南北取东），也不压南边那人的帽子；南北放宽到 |dz| > |dx|·0.27（≈tan15°，斜站约 75° 内，原来 Hug.Below 只到 45°）。
-    // loop-18 修补：原写 |dx|/2 只到 63.4°，63°–74° 退回中点——中点离两人恒 HugGap/2 = 0.45 m，帽檐 0.44 m，♥ 仍压北边那人的帽檐（规格要 45°–70° 不压）
+    // 抱着时「♥」的世界位置：两人中点上方 HugHeart；南北站位放在北边那人背对南边那人的一侧 HugHeartSide（x = 北.x − sign(南.x − 北.x)·HugHeartSide，正南北取东）；南北 = Hug.NorthSouth（loop-19 和字条走脚下 Low 共用一套）。
+    // 沿革：loop-16 中点 + 0.6 m；loop-17 北边那人身旁；loop-18 背对南边那人，南北从 45° 放宽到约 75°（|dx|/2 只到 63.4° 时 ♥ 退回中点，离两人恒 HugGap/2 = 0.45 m，仍压北边那人 0.44 m 的帽檐）
     public static Vector3 Heart(Vector3 a, Vector3 b)
     {
         var m = (a + b) * 0.5f + Vector3.up * Config.HugHeart;
         Vector3 n = a.z > b.z ? a : b, s = a.z > b.z ? b : a;
-        if (Mathf.Abs(a.z - b.z) > Mathf.Abs(a.x - b.x) * 0.27f) m.x = n.x + (s.x > n.x ? -Config.HugHeartSide : Config.HugHeartSide);
+        if (Hug.NorthSouth(a, b)) m.x = n.x + (s.x > n.x ? -Config.HugHeartSide : Config.HugHeartSide);
         return m;
     }
 
@@ -75,7 +74,7 @@ public partial class Hints
             GUI.Label(tr, ts[i], ink);
             if (ten[i] >= 0f) GUI.DrawTexture(new Rect(tr.x, r.yMax - Config.HintBar, tr.width * Mathf.Clamp01(ten[i]), Config.HintBar), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, ten[i] > Config.HintRed ? Config.Bobber : ink.normal.textColor, 0f, 0f);   // 收线：字条下沿一道张力条，宽 = 字条宽 × 张力，快满变 Bobber 红（loop-10）
         }
-        if (Hug.On && at.Length == 2)   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；南北站位挪到北边那人右侧（loop-16 起画，loop-17 以北边那人为基准，见 Heart）
+        if (Hug.On && at.Length == 2)   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；南北站位放在北边那人背对南边那人的一侧 HugHeartSide；南北 = Hug.NorthSouth（见 Heart）
         {
             var m = cam.WorldToScreenPoint(Heart(at[0], at[1]));
             ink.normal.textColor = ink.hover.textColor = Config.Bobber; GUI.Label(new Rect(m.x - 20f, Screen.height - m.y - 14f, 40f, 28f), "♥", ink);

@@ -92,8 +92,14 @@ public class PlayTests7
         Assert.That(hit, Is.InRange(540, 660));
     }
 
-    // 2 灯笼鱼那句带中文名
-    [Test] public void LanternSay() => Assert.AreEqual("灯塔引来一条灯笼鱼！", Hints.Lantern);
+    // 2 灯笼鱼那句带中文名；loop-19 垒成小灯塔那句（Hints.Tower）也锁住字。这两句长、留 HintLong 读得完（Hints.Secs：BrickBuild、FishingStateMachine 都按它传秒数），钓上普通鱼那句照旧 HintFail
+    [Test] public void LanternSay()
+    {
+        Assert.AreEqual("灯塔引来一条灯笼鱼！", Hints.Lantern);
+        Assert.AreEqual("小灯塔垒好了，夜里会引来灯笼鱼", Hints.Tower);
+        Assert.AreEqual(new[] { Config.HintLong, Config.HintLong }, new[] { Hints.Secs(Hints.Tower), Hints.Secs(Hints.Lantern) }, "这两句长：HintLong");
+        Assert.AreEqual(Config.HintFail, Hints.Secs(Hints.Caught(Config.FishNames[0])), "钓上普通鱼：HintFail");
+    }
 
     // loop-18 ♥ 50° 斜站、南边那人偏东（原来 Hug.Below 只认 45° 内，♥ 落回中点）：南北放宽（见 Hints.Heart），♥ 在北边那人西侧；正南北取东
     [Test] public void HeartSlant50()

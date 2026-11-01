@@ -123,7 +123,7 @@ public class FishingStateMachine : MonoBehaviour
             LastLantern = Roll(Chance(Bricks.Towers(Stock.Current), tod != null && TimeOfDay.Dark(tod.t)), roll);   // loop-17 换鱼只在这层记账外壳里：PickFish 照旧挑，掷中这条就记成灯笼鱼（loop-18 先掷再打 CAUGHT，行尾才带得上 lantern）
             Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}{(LastLantern ? " lantern" : "")}");   // 实玩脚本靠这行判断钓上
             logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount, LastLantern);
-            Hints.Say(owner, LastLantern ? Hints.Lantern : Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」（loop-17 灯笼鱼说 Hints.Lantern）；角上那行的英文鱼名 loop-18 起灯笼鱼换成 lantern（FishHud）
+            var say = LastLantern ? Hints.Lantern : Hints.Caught(Logic.LastFish); Hints.Say(owner, say, Hints.Secs(say));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」（loop-17 灯笼鱼说 Hints.Lantern）；角上那行的英文鱼名 loop-18 起灯笼鱼换成 lantern（FishHud）；loop-19 灯笼鱼那句长，留 HintLong（秒数查 Hints.Secs，测试锁得住）
             if (LastLantern) Debug.Log($"EVT lantern p{owner} towers={Bricks.Towers(Stock.Current)} t={Time.timeSinceLevelLoad:0.0}");
         }
     }
