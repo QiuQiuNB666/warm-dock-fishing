@@ -90,6 +90,8 @@ public static class BuildScene
         game.AddComponent<PierSave>();   // 开局读档（没档/坏档新开），两人站到床边
         var cjk = AssetDatabase.LoadAssetAtPath<Font>(CjkFont);   // 暂停菜单、底部提示
         var bricks = game.AddComponent<Bricks>(); bricks.material = BuildNature.Mat("M_brick", Config.BrickColor); bricks.glow = tod.glow; bricks.font = cjk; bricks.cabin = cabin;   // 砖：门口 E 拿鱼换、B 放；小屋没碰撞体，挡砖另给
+        bricks.ghost = Prim(PrimitiveType.Cube, "BrickGhost", game.transform, Vector3.zero, new Vector3(Config.GhostSide, Config.GhostThick, Config.GhostSide), GameObject.Find("ShadowDisc").GetComponent<Renderer>().sharedMaterial);   // loop-20 放砖预览的样板：半透明 M_shadow（网页圆片影子那份，现成）
+        Object.DestroyImmediate(bricks.ghost.GetComponent<Collider>()); bricks.ghost.SetActive(false);   // 碰撞体在编辑器里就删（会挡人、会被 Bricks.Start 收进挡砖表），运行时一个都没有；藏着，Bricks 每人复制一份
         game.AddComponent<Pause>().font = cjk;
         game.AddComponent<Hints>().font = cjk;   // 头顶就近提示（loop-3）
         game.AddComponent<Hug>();   // 两人凑近按 H 抱一下（loop-13）

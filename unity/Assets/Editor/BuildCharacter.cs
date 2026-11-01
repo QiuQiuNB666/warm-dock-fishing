@@ -67,7 +67,7 @@ public static class BuildCharacter
 
         var bobber = BuildScene.Prim(PrimitiveType.Sphere, "Bobber" + sfx, root, Tackle.CastTarget(index), Vector3.one * 0.18f, BuildNature.Mat("M_bobber", Config.Bobber));
         Object.DestroyImmediate(bobber.GetComponent<Collider>());
-        var fish = BuildScene.Prim(PrimitiveType.Capsule, "HookedFish" + sfx, root, Config.FishSpot, new Vector3(0.2f, 0.4f, 0.2f), BuildNature.Mat("M_fish", Config.Fish));
+        var fish = BuildScene.Prim(PrimitiveType.Capsule, "HookedFish" + sfx, root, Config.FishSpot, new Vector3(Config.FishRadius * 2f, Config.FishHalf, Config.FishRadius * 2f), BuildNature.Mat("M_fish", Config.Fish));
         Object.DestroyImmediate(fish.GetComponent<Collider>());
         var line = player.AddComponent<LineRenderer>();
         line.widthMultiplier = 0.015f; line.positionCount = Tackle.LinePoints;

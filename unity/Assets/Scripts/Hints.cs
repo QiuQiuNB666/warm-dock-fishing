@@ -17,11 +17,12 @@ public partial class Hints : MonoBehaviour
     readonly FishState[] last = new FishState[KeyMap.Players.Length];   // 每人上一帧的钓鱼状态（Update 比对，失败时说一句）
     static readonly string[] fail = new string[KeyMap.Players.Length];   // 每人刚说的那句（钓鱼失败；loop-9 烤鱼，见 Say）：Time.time < failUntil 时代替 Text 画在自己的字条位置（不走底部 Toast：正中会压住落后那人，也不分人）
     static readonly float[] failUntil = new float[KeyMap.Players.Length];
-    readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计）
+    static readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计；loop-20 改静态：放砖预览也看它，见 Still）
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
     public static void Say(int player, string text, float secs = Config.HintFail) { if (string.IsNullOrEmpty(text)) return; fail[player] = text; failUntil[player] = Time.time + secs; }   // 在这人自己的字条位置说 secs 秒（默认 HintFail：钓鱼失败、loop-9 烤鱼、loop-11 放不下砖；loop-18 垒成小灯塔那句长，传 HintLong）；空串不说（loop-12：钓鱼中按 B 放不下给空串，记下来会把字条整个清掉）
     public static string Said(int player) => fail[player];   // 这人最后说的那句（不管过没过时；测试看「天亮了」两人都说）
+    public static float Still(int player) => still[player];   // loop-20 这人站定了几秒：Bricks 的放砖预览要站定 GhostStill 秒（同一个计时，不另算）
 
     // loop-18「天亮了」只一套规矩：自然天亮（TimeOfDay.Dawn）和睡醒（Sleep.ToMorning）都走这里，busy[k] = 第 k 人正在钓鱼就跳过（null = 都说）
     public static void Morning(bool[] busy) { for (int k = 0; k < fail.Length; k++) if (busy == null || !busy[k]) Say(k, "天亮了"); }

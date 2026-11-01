@@ -105,4 +105,10 @@ public static partial class Config
     public const float HugNorthSouth = 0.27f;
     // loop-17 灯塔引鱼：天黑（TimeOfDay.Dark：灯笼 Glow ≥ LanternDark，t ∈ [0.5, 0.875]）时每座小灯塔让钓上的那条有 LanternPer 的几率换成灯笼鱼（记熟鱼，门口换两砖），封顶 LanternMax；白天 0
     public const float LanternPer = 0.15f, LanternMax = 0.6f, LanternDark = 0.5f;
+    // loop-20 放砖预览：手里有砖、站定 GhostStill 秒（同字条的站定计时）、没在钓也没在抱、面前那格现在能放时，在下一块砖的位置贴一片 GhostThick 厚的半透明方块（M_shadow）；
+    // 边长 GhostSide 比砖小一圈（四边各 5 cm）：贴在砖顶时露出一圈砖色边，看得出是一片预览，不像砖顶自己发暗（l20p1 实玩：等大时只像顶面暗了）
+    public const float GhostStill = 0.3f, GhostThick = 0.02f, GhostSide = BrickSize - 0.1f;
+    // loop-20 修补：钓上的鱼（Tackle.Leap / Hand）从浮漂沿弧高 FishLeapArc 跃 FishLeapTime 秒，落到根节点上方 FishHandUp、前方 FishHandFwd 的手上；鱼是竖着的胶囊，半长 FishHalf（= BuildCharacter 里 HookedFish 的 y 缩放）、半径 FishRadius。
+    // 说钓上那句时 Hints 按同一条弧框出鱼还会占的屏幕范围，再框别人的帽子（帽檐半径 HatBrim，帽檐到帽顶 rig.py BRIM / CROWN 约 1.70–1.91 m = HatMid ± HatHalf），字条两样都不压（Hints.Dodge）
+    public const float FishHandUp = 2.1f, FishHandFwd = 0.3f, FishLeapTime = 0.6f, FishLeapArc = 1.5f, FishHalf = 0.4f, FishRadius = 0.1f, HatBrim = 0.44f, HatMid = 1.81f, HatHalf = 0.11f;
 }

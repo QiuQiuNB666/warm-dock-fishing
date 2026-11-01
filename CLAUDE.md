@@ -88,6 +88,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   loop-16 unity/Assets/Tests/EditMode/PlayTests6.cs（钓上说中文鱼名、黄昏前不列睡觉、天亮重置树、Toast 改说在字条上的纯逻辑测试，PlayTests5 快满了另开）
   loop-17 unity/Assets/Tests/EditMode/PlayTests7.cs（Say 不盖咬钩提示、天亮跳过钓鱼的人、♥ 以北边那人为基准、灯笼鱼几率 / 灯塔计数 / 记账的纯逻辑测试，PlayTests 满了另开）
   loop-18 unity/Assets/Tests/EditMode/CoopTests2.cs（CoopTests 正好 150 行：play-1~3 钓上记账、门口换砖、同格垒砖三条整条搬来，断言一字不改）
+  loop-20 unity/Assets/Tests/EditMode/PlayTests8.cs（放砖预览什么时候画、画在哪，钓上那句字条不压跃出的鱼和别人的帽子（Hints.Dodge）的纯逻辑测试，PlayTests5 / PlayTests7 满了另开）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

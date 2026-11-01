@@ -8,6 +8,16 @@ public class SceneTests2
 {
     [OneTimeSetUp] public void Open() => new BuildSceneTests().Open();
 
+    // loop-20 放砖预览的样板：不带任何碰撞体（会挡人、会被 Bricks.Start 收进挡砖表）、藏着、用现成的半透明 M_shadow，边长 GhostSide、厚 GhostThick
+    [Test] public void GhostTemplate()
+    {
+        var g = Object.FindAnyObjectByType<Bricks>().ghost;
+        Assert.IsNotNull(g); Assert.IsFalse(g.activeSelf, "藏着");
+        Assert.AreEqual(0, g.GetComponentsInChildren<Collider>(true).Length, "不带碰撞体");
+        Assert.AreEqual("M_shadow", g.GetComponent<Renderer>().sharedMaterial.name);
+        Assert.AreEqual(new Vector3(Config.GhostSide, Config.GhostThick, Config.GhostSide), g.transform.localScale);
+    }
+
     // loop-9 篝火：一个、带碰撞体（挡人也挡砖）、上方一盏点光源；离每棵树都比 InteractRange + ChopRange 远（烤鱼和砍树的 E 范围不相交）
     [Test] public void CampfireClearOfTrees()
     {

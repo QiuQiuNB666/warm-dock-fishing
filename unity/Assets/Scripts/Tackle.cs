@@ -36,6 +36,11 @@ public class Tackle : MonoBehaviour
     // 抛物线：t=0 起点，t=1 终点，中点比两端连线高 h
     public static Vector3 Arc(Vector3 a, Vector3 b, float t, float h) => Vector3.Lerp(a, b, t) + Vector3.up * (4f * h * t * (1f - t));
 
+    // 钓上的鱼：钓上 t 秒时从浮漂 hook 沿 Arc（弧高 FishLeapArc）跃了多远，FishLeapTime 秒落到手位 Hand（根节点上方 FishHandUp、前方 FishHandFwd）；loop-20 修补从这里提进 Config，Hints 按同一条弧框出鱼还会占的屏幕范围，字条让开（Hints.Dodge）
+    public static Vector3 Hand(Transform t) => t.position + Vector3.up * Config.FishHandUp + t.forward * Config.FishHandFwd;
+    public static Vector3 Leap(Vector3 hook, Vector3 hand, float t) => Arc(hook, hand, Mathf.Clamp01(t / Config.FishLeapTime), Config.FishLeapArc);
+    public static Vector3? Hook(int player) => all[player] != null ? all[player].hookPos : (Vector3?)null;   // 这名玩家这一条从哪跃起（钓上那一刻的浮漂位置，Enter(Caught) 记下；Caught 以外是上一条的，调用方自己看状态）
+
     // 二次贝塞尔下垂：控制点在中点下方 sag 米
     public static Vector3 Sag(Vector3 a, Vector3 b, float t, float sag)
     {
@@ -120,9 +125,7 @@ public class Tackle : MonoBehaviour
             }
             else if (s == FishState.Caught)
             {
-                Vector3 hand = transform.position + Vector3.up * 2.1f + transform.forward * 0.3f;
-                float k = Mathf.Clamp01(t / 0.6f);
-                p = Arc(hookPos, hand, k, 1.5f); dir = Vector3.up;
+                p = Leap(hookPos, Hand(transform), t); dir = Vector3.up;
             }
             else
             {
