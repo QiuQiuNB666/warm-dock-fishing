@@ -124,7 +124,7 @@ public class Bricks : MonoBehaviour
         {
             if (p == null || !p.isActiveAndEnabled) continue;
             var k = KeyMap.Players[p.playerIndex];
-            if (!InputManager2P.Pressed(k.Build)) continue;
+            if (Hug.On || !InputManager2P.Pressed(k.Build)) continue;   // loop-14 抱着不读 B
             int i = p.playerIndex; var c = Front(p.transform.position, p.transform.forward); var at = players.Positions(); int h = Height(Stock.Current, c);
             var why = BrickWhy.Of(Stock.Current, c, h, at, BrickPath.Open(Stock.Current, c, at), p.transform.position);   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层（loop-11 原因码；loop-12 传自己的位置：只有自己压到砖位说「退后半步再放」）
             var r = why == BrickWhy.Code.Ok ? TryPlace(Stock.Current, c, h) : null;

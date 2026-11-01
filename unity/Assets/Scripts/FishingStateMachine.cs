@@ -79,6 +79,7 @@ public class FishingStateMachine : MonoBehaviour
     public static bool DemoDrives(Component c) => Demo && c.name == "Player";   // 演示只驱动名为 Player 的那一个
     public FishingLogic Logic { get; private set; }
     public bool Busy => Logic.State != FishState.Idle;
+    public static bool WillPress(bool down, bool hug, bool busy, bool inSpot) => down && !hug && (busy || inSpot);   // 这一帧按下算不算数：抱着一律不算（loop-14 提成静态，测试抓得到）
     public Font font;   // 角上「生鱼 n」用 WarmCJK（和暂停菜单同一份，FishHud 画），网页端才显示得出中文
     int owner;   // 第几名玩家：P1 Space，P2 Keypad5
     float atSpot;
@@ -106,7 +107,7 @@ public class FishingStateMachine : MonoBehaviour
         bool hold = InputManager2P.FishHeld(owner) || (pointer && Input.GetMouseButton(0));
         bool demo = DemoDrives(this);
         if (demo) DemoInput(out down, out hold);
-        if (down && !Hug.On && (Busy || Config.InFishSpot(transform.position))) Logic.Press();   // 抱着不抛竿（loop-13；抱要两人都 Idle，所以抱着时 Busy 恒假）
+        if (WillPress(down, Hug.On, Busy, Config.InFishSpot(transform.position))) Logic.Press();   // 抱着不抛竿（loop-13；抱要两人都 Idle，所以抱着时 Busy 恒假）
         Logic.Tick(Time.deltaTime, hold);   // 咬钩那一刻的 EVT bite 在 Hints.Update 的前后帧比对里打（loop-10）
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {

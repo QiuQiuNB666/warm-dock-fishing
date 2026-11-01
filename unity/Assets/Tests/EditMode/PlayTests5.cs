@@ -48,8 +48,9 @@ public class PlayTests5
         Assert.That(rise, Is.InRange(0.1f, 0.9f), "进：平滑，不瞬切");
         Assert.AreEqual(rise, fall, 1e-4f, "出：同样平滑");
         Assert.AreEqual(0f, Hug.Weight(t0, t0 + Config.HugTime), 1e-4f);
-        Assert.IsTrue(PlayerController.Still(false, false, Hug.Active(t0, t0 + 0.75f)), "抱着不读移动");
-        Assert.IsFalse(PlayerController.Still(false, false, Hug.Active(t0, t0 + 1.6f)), "抱完照旧能走");
+        float keep = Hug.Since;   // loop-14：Still 自己读 Hug.Since（PlayerController 的接线，删掉这两条就挂）
+        try { Hug.Since = t0; Assert.IsTrue(PlayerController.Still(false, false, t0 + 0.75f), "抱着不读移动"); Assert.IsFalse(PlayerController.Still(false, false, t0 + 1.6f), "抱完照旧能走"); }
+        finally { Hug.Since = keep; }
     }
 
     // 开局床边两人挨着仍是「R 睡觉　WASD 走…」（没有 H 抱抱）；钓过鱼、空着一格才补；P2 叫 Num3；不能抱就不列
@@ -66,5 +67,63 @@ public class PlayTests5
         Assert.AreEqual("WASD 走去码头尽头钓鱼　H 抱抱", Hint(0, Sand, false));
         Assert.AreEqual("H 抱抱", Hint(0, Sand, true));
         Assert.AreEqual("", Hint(0, Sand, true, false));
+    }
+
+    // loop-14 冷却：抱着、抱完 HugCooldown 秒内都不能再抱（读键和「H 抱抱」都走 Ready → Can），连按 H 锁不住对方
+    [Test]
+    public void HugCooldownBlocksAgain()
+    {
+        var b = Sand + Vector3.right;
+        Assert.IsFalse(Hug.Can(Sand, b, FishState.Idle, FishState.Idle, false, 0.5f), "抱着不能再抱");
+        Assert.IsFalse(Hug.Can(Sand, b, FishState.Idle, FishState.Idle, false, Config.HugTime + 1f), "冷却中不能抱");
+        Assert.IsTrue(Hug.Can(Sand, b, FishState.Idle, FishState.Idle, false, Config.HugTime + Config.HugCooldown), "冷却完能抱");
+    }
+
+    // loop-14 接线：抱着按 Space 一律不算（FishingStateMachine.WillPress）
+    [Test]
+    public void HugBlocksCast()
+    {
+        foreach (bool busy in new[] { false, true })
+            foreach (bool spot in new[] { false, true })
+                Assert.IsFalse(FishingStateMachine.WillPress(true, true, busy, spot), $"抱着不抛竿 busy={busy} spot={spot}");
+        Assert.IsTrue(FishingStateMachine.WillPress(true, false, false, true), "不抱照旧能抛竿");
+        Assert.IsFalse(FishingStateMachine.WillPress(false, false, true, true), "没按不算");
+    }
+
+    // loop-14 抱得像抱：间距收到 HugGap、HugClose 秒走完不弹回；抱前就朝着对方的转向和连线垂直、离镜头近的一侧（并排 = 镜头），否则转回去；南北站位挨着时靠下那人的字条到脚下（抱完不动也算）
+    [Test]
+    public void HugClosesInAndTurnsBack()
+    {
+        Assert.AreEqual(0.05f, Hug.Close(1f), 1e-4f, "相距 1 m 各走 0.05 m，收到 0.9 m");
+        Assert.AreEqual(0f, Hug.Close(0.6f), "本来就够近不挪");
+        Assert.AreEqual(0f, Hug.Walked(10f, 10f));
+        Assert.AreEqual(1f, Hug.Walked(10f, 10f + Config.HugClose), 1e-4f);
+        Assert.AreEqual(1f, Hug.Walked(10f, 30f), "走完停住，不弹回");
+        Assert.AreEqual(Vector3.back, Hug.After(Vector3.right, Vector3.right), "本来就面对面：转向镜头");
+        Assert.AreEqual(Vector3.forward, Hug.After(Vector3.forward, Vector3.right), "否则转回抱前的朝向");
+        Vector3 s = Hug.After(Vector3.forward, Vector3.forward), n = Hug.After(Vector3.back, Vector3.back);   // 南北站位面对面
+        Assert.AreNotEqual(Vector3.back, s, "南北面对面：不转向镜头（北边那根竿会横过南边那人）");
+        Assert.AreEqual(s, n, "两人转同一侧，竿平行"); Assert.AreEqual(0f, Vector3.Dot(s, Vector3.forward), 1e-4f, "和两人连线垂直");
+        var north = Sand + Vector3.forward;
+        Assert.IsTrue(Hug.Below(Sand, new[] { Sand, north }), "南边那人在下");
+        Assert.IsFalse(Hug.Below(north, new[] { Sand, north }), "北边那人不在下");
+        Assert.IsFalse(Hug.Below(Sand, new[] { Sand, Sand + Vector3.right }), "左右并排都不算");
+        Vector3 ns = Sand + Vector3.forward * Config.HugGap, ew = Sand + Vector3.right * Config.HugGap;   // 抱完两人留在 HugGap 不动（Hug.On 已为假）
+        Assert.IsTrue(Hints.Low(false, Sand, new[] { Sand, ns }), "抱完南北站位：靠南那人的字条仍走脚下");
+        Assert.IsFalse(Hints.Low(false, Sand, new[] { Sand, ew }), "左右并排不走脚下");
+        Assert.IsFalse(Hints.Low(false, Sand, new[] { Sand, Sand + Vector3.forward * (Config.HugRange + 0.5f) }), "南北离得远（> HugRange）不走脚下");
+    }
+
+    // loop-14 修补二：南北为主时两人都转西（握竿的右手在各自北侧、藏在自己帽檐下）；北边那人偏东 0.1 m 也一样（原来取 z 小的一侧，一偏东两人就都转东）
+    [Test]
+    public void HugNorthSouthTurnsWest()
+    {
+        foreach (float dx in new[] { 0.1f, 0f, -0.1f })   // 北边那人偏东 / 正北 / 偏西：facing 带一点 x
+        {
+            var north = Sand + new Vector3(dx, 0f, 1f);
+            Vector3 s = Hug.After(Vector3.forward, Hug.Face(Sand, north)), n = Hug.After(Vector3.back, Hug.Face(north, Sand));
+            Assert.Less(s.x, 0f, $"南边那人转西 dx={dx}"); Assert.Less(n.x, 0f, $"北边那人转西 dx={dx}");
+            Assert.AreEqual(s, n, $"两人转同一侧，竿平行 dx={dx}");
+        }
     }
 }

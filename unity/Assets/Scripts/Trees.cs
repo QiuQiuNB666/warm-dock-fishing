@@ -83,7 +83,7 @@ public class Trees : MonoBehaviour
         if (Pause.On || players == null) return;
         foreach (var p in players.players)
         {
-            if (p == null || !p.isActiveAndEnabled || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;
+            if (p == null || !p.isActiveAndEnabled || Hug.On || !InputManager2P.Pressed(KeyMap.Players[p.playerIndex].Interact)) continue;   // loop-14 抱着不读 E
             int i = p.playerIndex, b = Stock.Current.brick;   // 换了几块砖 = 换砖前后的砖数差（熟鱼一条换两砖；loop-10 不再另数一遍熟鱼）
             int k = Interact(Stock.Current, i, p.transform.position, Pos), n = Stock.Current.brick - b;
             if (k == Traded) { Toast(n > 1 ? "换得两砖" : "换得一砖"); TradedOnce[i] = true; Debug.Log($"EVT trade p{i} bricks={n}"); }

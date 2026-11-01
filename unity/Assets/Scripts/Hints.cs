@@ -71,6 +71,9 @@ public class Hints : MonoBehaviour
     // 字条画到脚下吗（loop-10 回差）：头顶位置 headY（字条上沿）高过 HintTop 就到脚下；已在脚下的要比 HintTop 再低 HintBack px 才回头顶，免得在边界上来回跳
     public static bool Feet(bool was, float headY) => headY < Config.HintTop + (was ? Config.HintBack : 0f);
 
+    // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
+    public static bool Low(bool feet, Vector3 me, Vector3[] all) => feet || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
+
     void Start() { players = FindAnyObjectByType<PlayerManager>(); cam = Camera.main; }
 
     void Update()   // 每人：站定计时；钓鱼状态和上一帧比，失败就记下那句、OnGUI 画在这人自己的字条位置（打 EVT fishfail，实玩 until 等它）
@@ -101,7 +104,7 @@ public class Hints : MonoBehaviour
             if (Stock.Current.brick > 0 && Time.time >= pathAt[p.playerIndex])   // 手里有砖才算（没砖 CanPlace 本来就不过）
             { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
-            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && Hug.Ready(players.players));
+            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && !Hug.Once && Hug.Ready(players.players));   // loop-14「H 抱抱」抱过一次（Hug.Once）就不再出
             if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖）：整句换掉 Text。钓鱼中按 B 放不下不说（loop-12，BrickWhy.Say 给空串）；失败那句之后下一次咬钩最早在 CastTime + WaitMin 后——所以「提竿」不会被盖住
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
@@ -109,7 +112,7 @@ public class Hints : MonoBehaviour
             Vector2 size = style.CalcSize(new GUIContent(text));
             float y = Screen.height - h.y - size.y;   // 字的底边在头顶点上；这样会压到顶部「砖 n　木 n」就改画到脚下几像素（不往下夹去压帽子），回差见 Feet
             feet[p.playerIndex] = Feet(feet[p.playerIndex], y);
-            if (feet[p.playerIndex]) y = Screen.height - cam.WorldToScreenPoint(p.transform.position).y + Config.HintFeetGap;
+            if (Low(feet[p.playerIndex], p.transform.position, at)) y = Screen.height - cam.WorldToScreenPoint(p.transform.position).y + Config.HintFeetGap;   // loop-14 南北站位挨着（抱完不动也算，Low）：屏幕上靠下那人走脚下这一支，不压对方的帽子
             rs[n] = new Rect(h.x - size.x * 0.5f, y, size.x, size.y); who[n] = p.playerIndex; ten[n] = f != null && f.State == FishState.Reel ? f.Tension : -1f; ts[n++] = text;
         }
         if (n == 2) Apart(ref rs[0], ref rs[1]);
@@ -123,5 +126,6 @@ public class Hints : MonoBehaviour
             GUI.Label(r, ts[i], ink);
             if (ten[i] >= 0f) GUI.DrawTexture(new Rect(r.x, r.yMax - Config.HintBar, r.width * Mathf.Clamp01(ten[i]), Config.HintBar), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, ten[i] > Config.HintRed ? Config.Bobber : ink.normal.textColor, 0f, 0f);   // 收线：字条下沿一道张力条，宽 = 字条宽 × 张力，快满变 Bobber 红（loop-10）
         }
+        if (Hug.On && at.Length == 2 && !Hug.Below(at[0], at) && !Hug.Below(at[1], at)) { var m = cam.WorldToScreenPoint((at[0] + at[1]) * 0.5f + Vector3.up * Config.HugHeart); ink.normal.textColor = ink.hover.textColor = Config.Bobber; GUI.Label(new Rect(m.x - 20f, Screen.height - m.y - 14f, 40f, 28f), "♥", ink); }   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；南北站位不画：中点投下去正落在北边那人的帽顶上，像帽子上一个红点
     }
 }

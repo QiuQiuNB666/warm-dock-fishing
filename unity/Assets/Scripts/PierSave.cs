@@ -111,7 +111,7 @@ public class PierSave : MonoBehaviour
         if (dirtyFor > Config.AutosaveSec) { Save(tod); dirtyFor = 0f; }   // 改动攒了 30 秒：自己存一次，不等失焦
         if (Pause.On || pm == null) return;
         foreach (var p in pm.players)   // 床边按 R（P2 小键盘 4）
-            if (p != null && p.isActiveAndEnabled && InputManager2P.Pressed(KeyMap.Players[p.playerIndex].R) && Sleep.NearBed(p.transform.position))
+            if (p != null && p.isActiveAndEnabled && !Hug.On && InputManager2P.Pressed(KeyMap.Players[p.playerIndex].R) && Sleep.NearBed(p.transform.position))   // loop-14 抱着不读 R
             {
                 Sleep.ToMorning(tod, pm);
                 if (bricks != null) bricks.Toast("天亮了");

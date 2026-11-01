@@ -49,8 +49,10 @@ public static partial class Config
     public const int MaxFish = 64, MaxCloth = 64;   // 生鱼、熟鱼、布
     public const float InteractRange = 2f, HugRange = 1.5f;
     // loop-13 拥抱：两人 XZ ≤ HugRange 按 H 一起抱 HugTime 秒；双臂进出各 HugBlend 秒平滑。姿势 = 大臂朝 HugUpper、小臂朝 HugFore（角色本地：x 往外为正、y 上、z 前；左右臂 x 镜像）
-    public const float HugTime = 1.5f, HugBlend = 0.15f;
-    public static readonly Vector3 HugUpper = new Vector3(0.5f, -0.25f, 1f), HugFore = new Vector3(-0.75f, 0f, 0.65f);
+    // loop-14：开始后 HugClose 秒内两人沿连线各往中点挪，间距收到 HugGap（帽檐半径 0.44 m（rig.py BRIM）×2 = 0.88 m 以外，两顶帽檐不交叠；胶囊 PlayerRadius×2 = 0.7 m 自然也不撞）；抱着和抱完 HugCooldown 秒内不能再抱；大臂少张、几乎朝前，小臂朝前略偏内（HugGap 0.9 m 时手越过中线约 6 cm，两人小臂在镜头那一侧交叉；原来的往外张在 0.9 m 只够两只拳头在中线碰头，像碰拳）；
+    // 抱前就朝着对方（点积 > HugFaced）的人抱完转向和两人连线垂直的一侧（左右为主取离镜头近的，并排即镜头；南北为主两人都取西），不再转回去对着（两根竿交叉）；抱着时两人头顶中间 HugHeart 高处画一个「♥」（南北站位不画）
+    public const float HugTime = 1.5f, HugBlend = 0.15f, HugClose = 0.25f, HugGap = 0.9f, HugCooldown = 2f, HugFaced = 0.7f, HugHeart = 2.1f;
+    public static readonly Vector3 HugUpper = new Vector3(0.3f, -0.15f, 0.94f), HugFore = new Vector3(-0.1f, 0f, 1f);
     // loop-1 砍树：人离树干（树的 XZ 位置）≤ ChopRange 按 E 砍一下（树干碰撞盒挡着人，站旁边要够得着），满 ChopHits 下得 1 木；
     // 每砍一下树绕树根摆 ChopShakeSec 秒、最大 ChopShakeDeg 度，幅度衰减到 0
     public const float ChopRange = 1.6f, ChopShakeSec = 0.3f, ChopShakeDeg = 5f;
