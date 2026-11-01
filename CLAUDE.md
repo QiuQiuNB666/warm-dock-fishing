@@ -84,6 +84,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   loop-9  unity/Assets/Tests/EditMode/PlayTests4.cs（篝火烤鱼、熟鱼换砖的纯逻辑测试）  unity/Assets/Art/SM_campfire.fbx（篝火，model.py 产出；assets/SM_campfire.fbx、assets_raw/campfire.glb 同管线）
   loop-11 unity/Assets/Scripts/BrickWhy.cs（按 B 放不下的原因码和要说的那句，Bricks.cs 满了单放）
   loop-13 unity/Assets/Scripts/Hug.cs（两人凑近按 H 抱一下：能不能抱、面对面朝向、计时与双臂权重、读键）  unity/Assets/Tests/EditMode/PlayTests5.cs（拥抱的纯逻辑测试，PlayTests 满了另开）
+  loop-15 unity/Assets/Tests/EditMode/SceneTests2.cs（场景断言，BuildSceneTests 满了接着放）  unity/Assets/Scripts/BrickBuild.cs（Bricks 的 partial：按记录生成方块、按 B 放砖）  unity/Assets/Scripts/HintsDraw.cs（Hints 的 partial：OnGUI 字条画法）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

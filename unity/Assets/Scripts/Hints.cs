@@ -8,19 +8,15 @@ using UnityEngine;
 // 各自不再出（只记在内存；「拿生鱼去篝火烤」改看烤过一次没有 Trees.CookedOnce，loop-11），人已在那儿（列了抛竿 / 换砖）不重复，站定 HintStill 秒才画。钓鱼失败（鱼跑了、线断了）在失败那人自己的字条位置说 HintFail 秒（Say；loop-9 烤鱼那句也用它）。
 // 判断全用 Bricks / Trees / PierSave / Config 现成的方法，只读，不改规则。暂停、人在屏幕外都不画；头顶会压到顶部「砖 n　木 n」就画到脚下（回差见 Feet）；收线时字条下沿画一道张力条（loop-10）。
 // 键名同屏幕下方饵按钮（BaitSelector.KeyName：P2 是 Num1/Num2/Num4/Num5），P1 的 Space 叫「空格」。
-public class Hints : MonoBehaviour
+public partial class Hints : MonoBehaviour
 {
     public Font font;   // WarmCJK（BuildScene 赋值），网页端才显示得出中文
     PlayerManager players;
     Camera cam;
-    GUIStyle style, ink;
     readonly FishState[] last = new FishState[KeyMap.Players.Length];   // 每人上一帧的钓鱼状态（Update 比对，失败时说一句）
     static readonly string[] fail = new string[KeyMap.Players.Length];   // 每人刚说的那句（钓鱼失败；loop-9 烤鱼，见 Say）：Time.time < failUntil 时代替 Text 画在自己的字条位置（不走底部 Toast：正中会压住落后那人，也不分人）
     static readonly float[] failUntil = new float[KeyMap.Players.Length];
     readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计）
-    readonly float[] pathAt = new float[KeyMap.Players.Length];   // loop-7 修补：每人面前那格的连通判断（BrickPath.Open，BFS）每 PathEvery 秒算一次，免得每帧算
-    readonly bool[] pathOk = new bool[KeyMap.Players.Length];
-    readonly bool[] feet = new bool[KeyMap.Players.Length];   // 每人的字条现在画在脚下吗（loop-10 回差，见 Feet）
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
     public static void Say(int player, string text) { if (string.IsNullOrEmpty(text)) return; fail[player] = text; failUntil[player] = Time.time + Config.HintFail; }   // 在这人自己的字条位置说 HintFail 秒（钓鱼失败、loop-9 烤鱼、loop-11 小灯塔 / 放不下砖）；空串不说（loop-12：钓鱼中按 B 放不下给空串，记下来会把字条整个清掉）
@@ -59,21 +55,6 @@ public class Hints : MonoBehaviour
         return was == FishState.Bite && now == FishState.Idle ? $"鱼溜走啦，下回一咬钩就按{(f == KeyCode.Space ? "" : " ")}{KeyName(f)}" : was == FishState.Reel && now == FishState.Lost ? "线断啦，张力快满就松手" : null;
     }
 
-    // 两张字条叠在一起（开局两人在床边只隔 0.7 m）：左右分开，各让一半，中间留 HintGap（loop-11 从 4 px 加到 12 px，一眼分得出是两张）；没叠就不动
-    public static void Apart(ref Rect a, ref Rect b)
-    {
-        if (!a.Overlaps(b)) return;
-        bool aLeft = a.center.x <= b.center.x;
-        float push = ((aLeft ? a.xMax - b.x : b.xMax - a.x) + Config.HintGap) * 0.5f * (aLeft ? 1f : -1f);
-        a.x -= push; b.x += push;
-    }
-
-    // 字条画到脚下吗（loop-10 回差）：头顶位置 headY（字条上沿）高过 HintTop 就到脚下；已在脚下的要比 HintTop 再低 HintBack px 才回头顶，免得在边界上来回跳
-    public static bool Feet(bool was, float headY) => headY < Config.HintTop + (was ? Config.HintBack : 0f);
-
-    // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
-    public static bool Low(bool feet, Vector3 me, Vector3[] all) => feet || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
-
     void Start() { players = FindAnyObjectByType<PlayerManager>(); cam = Camera.main; }
 
     void Update()   // 每人：站定计时；钓鱼状态和上一帧比，失败就记下那句、OnGUI 画在这人自己的字条位置（打 EVT fishfail，实玩 until 等它）
@@ -89,43 +70,5 @@ public class Hints : MonoBehaviour
             if (last[i] != FishState.Bite && now == FishState.Bite) Debug.Log($"EVT bite p{i} t={Time.timeSinceLevelLoad:0.0}");   // 咬钩那一刻（loop-10 从 FishingStateMachine 挪来；实玩脚本 until 等它）
             last[i] = now;
         }
-    }
-
-    void OnGUI()
-    {
-        if (Pause.On || players == null || cam == null) return;
-        style ??= new GUIStyle(GUI.skin.box) { fontSize = Config.HintFont, alignment = TextAnchor.MiddleCenter, font = font };   // 半透明底，同底部提示
-        if (ink == null) { ink = new GUIStyle(style); ink.normal.background = ink.hover.background = null; }   // 同字号、同内边距，只写字不画底
-        var rs = new Rect[players.players.Length]; var ts = new string[rs.Length]; var who = new int[rs.Length]; var ten = new float[rs.Length]; int n = 0; var at = players.Positions();
-        foreach (var p in players.players)
-        {
-            if (p == null || !p.isActiveAndEnabled) continue;
-            var f = p.fishing != null ? p.fishing.Logic : null;   // 钓鱼状态；CaughtCount > 0 = 这一局钓上过
-            if (Stock.Current.brick > 0 && Time.time >= pathAt[p.playerIndex])   // 手里有砖才算（没砖 CanPlace 本来就不过）
-            { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
-            bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
-            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && !Hug.Once && Hug.Ready(players.players));   // loop-14「H 抱抱」抱过一次（Hug.Once）就不再出
-            if (Time.time < failUntil[p.playerIndex]) text = fail[p.playerIndex];   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖）：整句换掉 Text。钓鱼中按 B 放不下不说（loop-12，BrickWhy.Say 给空串）；失败那句之后下一次咬钩最早在 CastTime + WaitMin 后——所以「提竿」不会被盖住
-            Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
-            if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
-            Vector3 h = cam.WorldToScreenPoint(p.transform.position + Vector3.up * Config.HintHeight);
-            Vector2 size = style.CalcSize(new GUIContent(text));
-            float y = Screen.height - h.y - size.y;   // 字的底边在头顶点上；这样会压到顶部「砖 n　木 n」就改画到脚下几像素（不往下夹去压帽子），回差见 Feet
-            feet[p.playerIndex] = Feet(feet[p.playerIndex], y);
-            if (Low(feet[p.playerIndex], p.transform.position, at)) y = Screen.height - cam.WorldToScreenPoint(p.transform.position).y + Config.HintFeetGap;   // loop-14 南北站位挨着（抱完不动也算，Low）：屏幕上靠下那人走脚下这一支，不压对方的帽子
-            rs[n] = new Rect(h.x - size.x * 0.5f, y, size.x, size.y); who[n] = p.playerIndex; ten[n] = f != null && f.State == FishState.Reel ? f.Tension : -1f; ts[n++] = text;
-        }
-        if (n == 2) Apart(ref rs[0], ref rs[1]);
-        for (int i = 0; i < n; i++)   // 夹在屏幕内，不出屏幕；上沿不高于 HintTop（顶部「砖 n　木 n」框的下沿）
-        {
-            var r = new Rect(Mathf.Clamp(rs[i].x, 0f, Screen.width - rs[i].width), Mathf.Clamp(rs[i].y, Config.HintTop, Screen.height - rs[i].height), rs[i].width, rs[i].height);
-            GUI.Box(r, GUIContent.none, style); GUI.Box(r, GUIContent.none, style);   // 同一个半透明底叠两遍：形状同顶部「砖 n　木 n」，深一倍，浅色字才读得出
-            ink.normal.textColor = ink.hover.textColor = Color.black;   // 先在右下偏 1 px 画一遍深色字当阴影
-            GUI.Label(new Rect(r.x + 1f, r.y + 1f, r.width, r.height), ts[i], ink);
-            ink.normal.textColor = ink.hover.textColor = Color.Lerp(Config.HatDot[who[i]], Color.white, Config.HintLighten);   // 再画字：帽子色（P1 草帽、P2 帽带，同屏外指示点）往白提亮
-            GUI.Label(r, ts[i], ink);
-            if (ten[i] >= 0f) GUI.DrawTexture(new Rect(r.x, r.yMax - Config.HintBar, r.width * Mathf.Clamp01(ten[i]), Config.HintBar), Texture2D.whiteTexture, ScaleMode.StretchToFill, true, 0f, ten[i] > Config.HintRed ? Config.Bobber : ink.normal.textColor, 0f, 0f);   // 收线：字条下沿一道张力条，宽 = 字条宽 × 张力，快满变 Bobber 红（loop-10）
-        }
-        if (Hug.On && at.Length == 2 && !Hug.Below(at[0], at) && !Hug.Below(at[1], at)) { var m = cam.WorldToScreenPoint((at[0] + at[1]) * 0.5f + Vector3.up * Config.HugHeart); ink.normal.textColor = ink.hover.textColor = Config.Bobber; GUI.Label(new Rect(m.x - 20f, Screen.height - m.y - 14f, 40f, 28f), "♥", ink); }   // loop-14 抱着时两人头顶中间一个小「♥」（思源黑体有 U+2665）；南北站位不画：中点投下去正落在北边那人的帽顶上，像帽子上一个红点
     }
 }

@@ -48,7 +48,7 @@ public class PlayTests4
         Assert.AreEqual(2, Config.CookedBricks, "规格：一条熟鱼换两砖");
     }
 
-    // E 的顺序：门口换砖 > 烤鱼 > 砍树。门口和火边的 E 范围不相交（火离每棵树也比 InteractRange + ChopRange 远，见 BuildSceneTests），实际不会同时成立；
+    // E 的顺序：门口换砖 > 烤鱼 > 砍树。门口和火边的 E 范围不相交（火离每棵树也比 InteractRange + ChopRange 远，见 SceneTests2），实际不会同时成立；
     // 这里把一棵假树摆在人脚下看谁先：门口有鱼先换砖（不烧柴）、火边有生鱼有木先烤、鱼烤完了才轮到砍树
     [Test] public void InteractOrder()
     {
