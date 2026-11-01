@@ -79,6 +79,7 @@ public class FishingStateMachine : MonoBehaviour
     public static bool DemoDrives(Component c) => Demo && c.name == "Player";   // 演示只驱动名为 Player 的那一个
     public FishingLogic Logic { get; private set; }
     public bool Busy => Logic.State != FishState.Idle;
+    public bool LastLantern { get; private set; }   // loop-18 最近钓上那条是不是灯笼鱼（掷完就记）：角上 FishHud 显示 lantern、CAUGHT 行尾带 lantern，前后说法一致
     public static bool WillPress(bool down, bool hug, bool busy, bool inSpot) => down && !hug && (busy || inSpot);   // 这一帧按下算不算数：抱着一律不算（loop-14 提成静态，测试抓得到）
     public Font font;   // 角上「生鱼 n」用 WarmCJK（和暂停菜单同一份，FishHud 画），网页端才显示得出中文
     int owner;   // 第几名玩家：P1 Space，P2 Keypad5
@@ -119,11 +120,11 @@ public class FishingStateMachine : MonoBehaviour
         Logic.Tick(Time.deltaTime, hold);   // 咬钩那一刻的 EVT bite 在 Hints.Update 的前后帧比对里打（loop-10）
         if (Logic.CaughtCount > logged)   // 钓上的瞬间：这条鱼进这名玩家的生鱼
         {
-            Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}");   // 实玩脚本靠这行判断钓上
-            bool lantern = Roll(Chance(Bricks.Towers(Stock.Current), tod != null && TimeOfDay.Dark(tod.t)), roll);   // loop-17 换鱼只在这层记账外壳里：PickFish 照旧挑，掷中这条就记成灯笼鱼
-            logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount, lantern);
-            Hints.Say(owner, lantern ? Hints.Lantern : Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」（loop-17 灯笼鱼说 Hints.Lantern）；角上那行英文不动
-            if (lantern) Debug.Log($"EVT lantern p{owner} towers={Bricks.Towers(Stock.Current)} t={Time.timeSinceLevelLoad:0.0}");
+            LastLantern = Roll(Chance(Bricks.Towers(Stock.Current), tod != null && TimeOfDay.Dark(tod.t)), roll);   // loop-17 换鱼只在这层记账外壳里：PickFish 照旧挑，掷中这条就记成灯笼鱼（loop-18 先掷再打 CAUGHT，行尾才带得上 lantern）
+            Debug.Log($"{(demo ? "DEMO-" : "")}CAUGHT p{owner} {Logic.LastFish} t={Time.timeSinceLevelLoad:0.0}{(LastLantern ? " lantern" : "")}");   // 实玩脚本靠这行判断钓上
+            logged = Credit(Stock.Current, owner, logged, Logic.CaughtCount, LastLantern);
+            Hints.Say(owner, LastLantern ? Hints.Lantern : Hints.Caught(Logic.LastFish));   // loop-16 钓上那一刻在这人自己的字条位置说「钓上一条<中文鱼名>！」（loop-17 灯笼鱼说 Hints.Lantern）；角上那行的英文鱼名 loop-18 起灯笼鱼换成 lantern（FishHud）
+            if (LastLantern) Debug.Log($"EVT lantern p{owner} towers={Bricks.Towers(Stock.Current)} t={Time.timeSinceLevelLoad:0.0}");
         }
     }
 
@@ -138,5 +139,5 @@ public class FishingStateMachine : MonoBehaviour
         hold = s == FishState.Reel && Logic.Tension < 0.7f;
     }
 
-    void OnGUI() { if (!Pause.On) FishHud.Draw(Logic, owner, font); }   // 暂停时让开；角上的字和收线时的两根条在 FishHud（loop-10 搬出）
+    void OnGUI() { if (!Pause.On) FishHud.Draw(Logic, owner, font, LastLantern); }   // 暂停时让开；角上的字和收线时的两根条在 FishHud（loop-10 搬出）
 }

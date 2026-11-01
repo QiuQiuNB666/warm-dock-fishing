@@ -9,12 +9,12 @@ public static class Sleep
     public static float Dusk => Array.IndexOf(Config.TimeNames, "dusk") / (float)Config.Times.Length;   // Config 里黄昏那一档的起点（t = 0.5）
     public static bool Evening(float t) => Mathf.Repeat(t, 1f) >= Dusk;   // loop-16 黄昏起（含夜里）头顶才列睡觉；白天 R 照旧能睡，只是不提示
 
-    // R 睡觉：时间跳到早晨那一档，所有树重置（砍的状态不进存档），两人回床边（P2 偏开 P2BedOffset），两人各在自己字条位置说「天亮了」（loop-16，原来底部 Toast），立刻存档。不 Application.Quit。
+    // R 睡觉：时间跳到早晨那一档，所有树重置（砍的状态不进存档），两人回床边（P2 偏开 P2BedOffset），两人各在自己字条位置说「天亮了」（loop-16，原来底部 Toast；loop-18 正在钓鱼的跳过，同自然天亮），立刻存档。不 Application.Quit。
     public static PierSave.Data ToMorning(TimeOfDay tod, PlayerManager pm)
     {
         if (tod != null) tod.t = Morning;
         Trees.NewDay(); PlaceAtBed(pm);
-        for (int k = 0; k < KeyMap.Players.Length; k++) Hints.Say(k, "天亮了");
+        Hints.Morning(TimeOfDay.Busy(TimeOfDay.Fish(pm)));   // loop-18 同自然天亮一套规矩（Hints.Morning）：正在钓鱼的人跳过
         return PierSave.Save(tod);
     }
 

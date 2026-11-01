@@ -12,7 +12,6 @@ public class TimeOfDay : MonoBehaviour
     public float t;   // 0..1 一天；0=晨 0.25=午 0.5=昏 0.75=夜
     public bool frozen;   // 截图模式：不随时间走
     PlayerManager pm;   // loop-17 天亮时看谁正在钓鱼（Dawn 跳过他）
-    readonly bool[] busy = new bool[KeyMap.Players.Length];
 
     static readonly int ColorId = Shader.PropertyToID("_Color");
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
@@ -34,13 +33,21 @@ public class TimeOfDay : MonoBehaviour
     }
 
     // loop-16「明天」名副其实：时间自己转过早晨那一刻（从夜里绕回 t = 0；T 键跳过去也算）→ 和睡醒一样重置树（Trees.NewDay）。返回跨没跨
-    // loop-17 也和睡醒一样给两人说「天亮了」；busy[k] = 第 k 人正在钓鱼（不 Idle）就跳过他（null = 都说）
+    // loop-17 也和睡醒一样给两人说「天亮了」；busy[k] = 第 k 人正在钓鱼（不 Idle）就跳过他（null = 都说）；loop-18 和睡醒共用 Hints.Morning，只一套规矩
     public static bool Dawn(float was, float now, bool[] busy = null)
     {
         if (now >= was) return false;
-        Trees.NewDay();
-        for (int k = 0; k < KeyMap.Players.Length; k++) if (busy == null || !busy[k]) Hints.Say(k, "天亮了");
+        Trees.NewDay(); Hints.Morning(busy);
         return true;
+    }
+
+    // loop-18 原 Update 里抄各人 busy 的那段提成静态（接线测试抓得到）：fish[k] 不 Idle = 第 k 人正在钓鱼；天亮、睡醒都按它跳过人（Hints.Morning）
+    public static bool[] Busy(FishState[] fish) => System.Array.ConvertAll(fish, f => f != FishState.Idle);
+    public static FishState[] Fish(PlayerManager pm)   // 各人此刻的钓鱼状态，按玩家号放；没有 PlayerManager、缺人都算 Idle
+    {
+        var s = new FishState[KeyMap.Players.Length];
+        if (pm != null) foreach (var p in pm.players) if (p != null && p.fishing != null) s[p.playerIndex] = p.fishing.Logic.State;
+        return s;
     }
 
     // loop-17 天黑 = 灯笼亮过一半（Glow ≥ LanternDark）：t ∈ [0.5 黄昏那一档, 0.875 夜里往早晨走到一半]；小灯塔这时才引灯笼鱼
@@ -69,8 +76,7 @@ public class TimeOfDay : MonoBehaviour
     {
         float was = t;
         if (!frozen) t = Input.GetKeyDown(KeyCode.T) ? NextPhase(t) : Mathf.Repeat(t + Time.deltaTime / Config.DayLength, 1f);
-        if (pm != null) foreach (var p in pm.players) if (p != null && p.fishing != null) busy[p.playerIndex] = p.fishing.Busy;
-        if (Dawn(was, t, busy)) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay、自己说天亮了）
+        if (Dawn(was, t, Busy(Fish(pm)))) Debug.Log($"EVT dawn t={Time.timeSinceLevelLoad:0.0}");   // 睡觉（Sleep.ToMorning）是在帧间直接改 t，这里看不到，也不用看（它自己 NewDay、自己 Hints.Morning）
         Apply(Evaluate(t));
     }
 

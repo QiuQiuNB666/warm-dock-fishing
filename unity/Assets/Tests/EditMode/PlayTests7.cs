@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-// loop-17 的纯逻辑测试（PlayTests 满了另开）：Say 不盖咬钩提示、天亮跳过正在钓鱼的人、南北站位的 ♥ 以北边那人为基准、灯笼鱼的天黑窗口 / 几率 / 灯塔计数 / 记账。不开场景、不调 Input。
+// loop-17 的纯逻辑测试（PlayTests 满了另开）：Say 不盖咬钩提示、天亮跳过正在钓鱼的人、南北站位的 ♥ 以北边那人为基准、灯笼鱼的天黑窗口 / 几率 / 灯塔计数 / 记账；loop-18：♥ 背对南边那人 / 50°·65°·70° 斜站、busy 接线、天亮一套规矩、Line 接线。不开场景、不调 Input。
 public class PlayTests7
 {
     // 每格垒几层：第 i 格在沙滩 (2i, -7)，只造记录，不判能不能放
@@ -46,12 +46,12 @@ public class PlayTests7
         finally { Trees.Hits = keep; }
     }
 
-    // 0c 抱着时的「♥」：南北站位（含斜站，如 P1 (2,-4)、P2 (2.4,-3.1)）x = 北边那人.x + HugHeartSide，谁先谁后一样；左右并排画在中点上方
+    // 0c 抱着时的「♥」：南北站位（含斜站，如 P1 (2,-4)、P2 (2.4,-3.1)）x = 北边那人.x ± HugHeartSide，取背对南边那人的一侧（loop-18），谁先谁后一样；左右并排画在中点上方
     [Test] public void HeartBesideNorth()
     {
         Vector3 p1 = new Vector3(2f, 0f, -4f), p2 = new Vector3(2.4f, 0f, -3.1f);
         foreach (var h in new[] { Hints.Heart(p1, p2), Hints.Heart(p2, p1) }) Assert.AreEqual(2.4f + Config.HugHeartSide, h.x, 1e-4f, "斜站");
-        Assert.AreEqual(1.6f + Config.HugHeartSide, Hints.Heart(new Vector3(2f, 0f, -4f), new Vector3(1.6f, 0f, -3.1f)).x, 1e-4f, "北边那人偏西");
+        Assert.AreEqual(1.6f - Config.HugHeartSide, Hints.Heart(new Vector3(2f, 0f, -4f), new Vector3(1.6f, 0f, -3.1f)).x, 1e-4f, "北边那人偏西（= 南边那人偏东）：loop-18 起放北边那人西侧");
         Assert.Less(Vector3.Distance(new Vector3(0.5f, Config.HugHeart, 0f), Hints.Heart(Vector3.zero, Vector3.right)), 1e-4f, "左右并排：中点");
         Assert.Greater(Config.HugHeartSide, 0.44f, "落在北边那人的帽檐（rig.py BRIM 0.44 m）外");
     }
@@ -94,4 +94,50 @@ public class PlayTests7
 
     // 2 灯笼鱼那句带中文名
     [Test] public void LanternSay() => Assert.AreEqual("灯塔引来一条灯笼鱼！", Hints.Lantern);
+
+    // loop-18 ♥ 50° 斜站、南边那人偏东（原来 Hug.Below 只认 45° 内，♥ 落回中点）：南北放宽（见 Hints.Heart），♥ 在北边那人西侧；正南北取东
+    [Test] public void HeartSlant50()
+    {
+        Vector3 n = new Vector3(2f, 0f, -3.1f), s = n + new Vector3(Mathf.Sin(50f * Mathf.Deg2Rad), 0f, -Mathf.Cos(50f * Mathf.Deg2Rad)) * Config.HugGap;
+        foreach (var h in new[] { Hints.Heart(n, s), Hints.Heart(s, n) }) Assert.AreEqual(n.x - Config.HugHeartSide, h.x, 1e-4f, "50° 斜站");
+        Assert.AreEqual(n.x + Config.HugHeartSide, Hints.Heart(n, n + Vector3.back * Config.HugGap).x, 1e-4f, "正南北取东");
+    }
+
+    // loop-18 修补 ♥ 65°、70° 斜站（规格 45°–70°；原判 |dz| > |dx|/2 只到 63.4°，♥ 退回中点仍压北边那人帽檐）：南边那人偏东 / 偏西，x = 北.x ∓ HugHeartSide，谁先谁后一样
+    [TestCase(65f), TestCase(70f)] public void HeartSlantSteep(float deg)
+    {
+        Vector3 n = new Vector3(2f, 0f, -3.1f);
+        foreach (float e in new[] { 1f, -1f })
+        {
+            var s = n + new Vector3(e * Mathf.Sin(deg * Mathf.Deg2Rad), 0f, -Mathf.Cos(deg * Mathf.Deg2Rad)) * Config.HugGap;
+            foreach (var h in new[] { Hints.Heart(n, s), Hints.Heart(s, n) }) Assert.AreEqual(n.x - e * Config.HugHeartSide, h.x, 1e-4f, e > 0f ? "南边那人偏东" : "南边那人偏西");
+        }
+    }
+
+    // loop-18 接线：各人 FishState → busy（天亮 / 睡醒跳过谁）：只有 Idle 不算在钓鱼，按玩家号对位；没有 PlayerManager 都算 Idle
+    [Test] public void BusyFromFish()
+    {
+        Assert.AreEqual(new[] { false, true }, TimeOfDay.Busy(new[] { FishState.Idle, FishState.Wait }));
+        foreach (FishState f in System.Enum.GetValues(typeof(FishState))) Assert.AreEqual(f != FishState.Idle, TimeOfDay.Busy(new[] { f })[0], f.ToString());
+        Assert.AreEqual(new[] { false, false }, TimeOfDay.Busy(TimeOfDay.Fish(null)));
+    }
+
+    // loop-18「天亮了」一套规矩：Hints.Morning 跳过正在钓鱼的人（TimeOfDay.Dawn、Sleep.ToMorning 都调它）；null 两人都说
+    [Test] public void MorningSkipsFisher()
+    {
+        Hints.Say(0, "x"); Hints.Say(1, "y");
+        Hints.Morning(TimeOfDay.Busy(new[] { FishState.Bite, FishState.Idle }));
+        Assert.AreEqual(new[] { "x", "天亮了" }, new[] { Hints.Said(0), Hints.Said(1) }, "P1 咬钩：跳过");
+        Hints.Morning(null);
+        Assert.AreEqual(new[] { "天亮了", "天亮了" }, new[] { Hints.Said(0), Hints.Said(1) });
+    }
+
+    // loop-18 接线：OnGUI 那一行 = Hints.Line（Text → Shown）：咬钩时被说一句照样「提竿」，Idle 时整句换成说的那句，没在说就是 Text
+    [Test] public void LineKeepsBite()
+    {
+        Vector3[] none = new Vector3[0]; int[] no = new int[0];
+        Assert.AreEqual("空格 提竿！", Hints.Line(new Stock(), 0, Vector3.zero, Vector3.forward, none, no, FishState.Bite, true, true, said: "天亮了", saying: true));
+        Assert.AreEqual("天亮了", Hints.Line(new Stock(), 0, Vector3.zero, Vector3.forward, none, no, FishState.Idle, true, true, said: "天亮了", saying: true));
+        Assert.AreEqual("Num5 抛竿", Hints.Line(new Stock(), 1, Config.FishSpot, Vector3.forward, none, no, FishState.Idle, false, false, said: "天亮了"), "没在说：照 Text");
+    }
 }

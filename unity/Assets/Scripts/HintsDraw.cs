@@ -28,11 +28,14 @@ public partial class Hints
     // 收线时照换：张力条按 ten[] 另画，不受影响
     public static string Shown(string text, string said, bool saying, FishState fish) => saying && fish != FishState.Bite ? said : text;
 
-    // loop-17 抱着时「♥」的世界位置：两人中点上方 HugHeart；南北站位（Hug.Below，含斜站 45° 内）x 改取北边那人.x + HugHeartSide，不压他的帽檐（loop-16 取中点 + 0.6 m，北边那人偏东时又压回去）
+    // loop-17 抱着时「♥」的世界位置：两人中点上方 HugHeart；南北站位 x 改取北边那人身旁 HugHeartSide，不压他的帽檐（loop-16 取中点 + 0.6 m，北边那人偏东时又压回去）。
+    // loop-18 放在北边那人背对南边那人的一侧（x = 北.x − sign(南.x − 北.x)·HugHeartSide，正南北取东），也不压南边那人的帽子；南北放宽到 |dz| > |dx|·0.27（≈tan15°，斜站约 75° 内，原来 Hug.Below 只到 45°）。
+    // loop-18 修补：原写 |dx|/2 只到 63.4°，63°–74° 退回中点——中点离两人恒 HugGap/2 = 0.45 m，帽檐 0.44 m，♥ 仍压北边那人的帽檐（规格要 45°–70° 不压）
     public static Vector3 Heart(Vector3 a, Vector3 b)
     {
         var m = (a + b) * 0.5f + Vector3.up * Config.HugHeart;
-        if (Hug.Below(a, new[] { b }) || Hug.Below(b, new[] { a })) m.x = (a.z > b.z ? a.x : b.x) + Config.HugHeartSide;
+        Vector3 n = a.z > b.z ? a : b, s = a.z > b.z ? b : a;
+        if (Mathf.Abs(a.z - b.z) > Mathf.Abs(a.x - b.x) * 0.27f) m.x = n.x + (s.x > n.x ? -Config.HugHeartSide : Config.HugHeartSide);
         return m;
     }
 
@@ -49,8 +52,7 @@ public partial class Hints
             if (Stock.Current.brick > 0 && Time.time >= pathAt[p.playerIndex])   // 手里有砖才算（没砖 CanPlace 本来就不过）
             { pathAt[p.playerIndex] = Time.time + Config.PathEvery; pathOk[p.playerIndex] = BrickPath.Open(Stock.Current, Bricks.Front(p.transform.position, p.transform.forward), at); }
             bool walk = still[p.playerIndex] < Config.HintStill;   // 没站定：兜底当作做过、不画（免得后面那人的字条盖住前面那人）
-            string text = Text(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && !Hug.Once && Hug.Ready(players.players), tod == null || Sleep.Evening(tod.t));   // loop-14「H 抱抱」抱过一次（Hug.Once）就不再出；loop-16 黄昏前不列睡觉
-            text = Shown(text, fail[p.playerIndex], Time.time < failUntil[p.playerIndex], f?.State ?? FishState.Idle);   // 刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖、天亮了……）整句换掉 Text，这人咬钩时除外（loop-17 Shown）
+            string text = Line(Stock.Current, p.playerIndex, p.transform.position, p.transform.forward, Trees.Pos, Trees.Hits, f?.State ?? FishState.Idle, walk || f != null && f.CaughtCount > 0, walk || Trees.TradedOnce[p.playerIndex], at, pathOk[p.playerIndex], walk || Trees.CookedOnce[p.playerIndex], !walk && !Hug.Once && Hug.Ready(players.players), tod == null || Sleep.Evening(tod.t), fail[p.playerIndex], Time.time < failUntil[p.playerIndex]);   // loop-14「H 抱抱」抱过一次（Hug.Once）就不再出；loop-16 黄昏前不列睡觉；刚说过一句（钓鱼失败、烤鱼、小灯塔、放不下砖、天亮了……）整句换掉，这人咬钩时除外（loop-17 Shown，loop-18 和 Text 合成 Line）
             Vector3 v = cam.WorldToViewportPoint(p.transform.position + Vector3.up * 1.8f);   // 人在屏幕外不画（同 TopDownCamera 屏外指示点的判据）
             if (text == "" || v.z < 0f || v.x < 0f || v.x > 1f || v.y < 0f || v.y > 1f) continue;
             Vector3 h = cam.WorldToScreenPoint(p.transform.position + Vector3.up * Config.HintHeight);

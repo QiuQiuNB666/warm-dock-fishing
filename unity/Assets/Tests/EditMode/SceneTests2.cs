@@ -33,4 +33,7 @@ public class SceneTests2
         }
         finally { Stock.Current = keep; if (block != null) Object.DestroyImmediate(block.parent.gameObject); Object.DestroyImmediate(b.gameObject); }
     }
+
+    // loop-18 Z1：沙滩台地北沿不过海岸线 z = 0（原来多盖 2 m，和码头前几块木板顶面共面打架，码头根部一条闪线）；顶面照旧 = GroundY（BuildSceneTests 那条）
+    [Test] public void BeachStopsAtShore() => Assert.LessOrEqual(One("Beach").GetComponent<Renderer>().bounds.max.z, 1e-4f);
 }

@@ -13,9 +13,9 @@ public static class BuildNature
         nature.SetParent(root, false);
         var sand = Mat("M_sand", Config.Sand);
 
-        // 沙滩台地：顶面 = GroundY，与码头同高
+        // 沙滩台地：顶面 = GroundY，与码头同高；北沿正好在海岸线 z = b.yMax = 0，余量只留南侧（loop-18：原来北沿多盖 2 m，和码头前几块木板顶面共面打架，码头根部一条闪线）
         var b = Config.Beach;
-        Box("Beach", nature, new Vector3(b.center.x, Config.GroundY - 1.5f, b.center.y), new Vector3(b.width + 10f, 3f, b.height + 4f), sand);
+        Box("Beach", nature, new Vector3(b.center.x, Config.GroundY - 1.5f, b.center.y - 1f), new Vector3(b.width + 10f, 3f, b.height + 2f), sand);
 
         // 树群：固定种子，避开码头入口与河道。model.py 的低模树；随机数抽取顺序不变，位置、大小和原来一样，朝向按位置算
         var leaf = Mat("M_leaf", Config.Leaf);

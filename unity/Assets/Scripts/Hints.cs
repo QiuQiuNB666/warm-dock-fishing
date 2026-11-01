@@ -20,8 +20,11 @@ public partial class Hints : MonoBehaviour
     readonly float[] still = new float[KeyMap.Players.Length];   // 每人站定了几秒（控制器 Speed01 为 0 就累计）
 
     public static string KeyName(KeyCode k) => k == KeyCode.Space ? "空格" : BaitSelector.KeyName(k);
-    public static void Say(int player, string text) { if (string.IsNullOrEmpty(text)) return; fail[player] = text; failUntil[player] = Time.time + Config.HintFail; }   // 在这人自己的字条位置说 HintFail 秒（钓鱼失败、loop-9 烤鱼、loop-11 小灯塔 / 放不下砖）；空串不说（loop-12：钓鱼中按 B 放不下给空串，记下来会把字条整个清掉）
+    public static void Say(int player, string text, float secs = Config.HintFail) { if (string.IsNullOrEmpty(text)) return; fail[player] = text; failUntil[player] = Time.time + secs; }   // 在这人自己的字条位置说 secs 秒（默认 HintFail：钓鱼失败、loop-9 烤鱼、loop-11 放不下砖；loop-18 垒成小灯塔那句长，传 HintLong）；空串不说（loop-12：钓鱼中按 B 放不下给空串，记下来会把字条整个清掉）
     public static string Said(int player) => fail[player];   // 这人最后说的那句（不管过没过时；测试看「天亮了」两人都说）
+
+    // loop-18「天亮了」只一套规矩：自然天亮（TimeOfDay.Dawn）和睡醒（Sleep.ToMorning）都走这里，busy[k] = 第 k 人正在钓鱼就跳过（null = 都说）
+    public static void Morning(bool[] busy) { for (int k = 0; k < fail.Length; k++) if (busy == null || !busy[k]) Say(k, "天亮了"); }
 
     // 纯逻辑：库存、玩家号、位置、朝向、树的位置与今天各砍了几下、钓鱼状态、这一局钓上过 / 换过砖没有、在场各人的位置（loop-7，null = 不判人）、
     // 面前那格放下去不切断去码头的路（loop-7 修补：BrickPath.Open 的结果，OnGUI 每 PathEvery 秒算一次传进来；默认 true = 不判）、这一局烤过鱼没有（loop-11 Trees.CookedOnce）、
@@ -50,6 +53,10 @@ public partial class Hints : MonoBehaviour
         };
         return string.Join("　", all.Where(a => a != null).Take(Config.HintMax));
     }
+
+    // loop-18 OnGUI 那一行合成静态（Text → Shown），删了接线测试会挂：刚说过一句（saying）整句换成 said，这人咬钩时照样是「提竿」
+    public static string Line(Stock s, int player, Vector3 p, Vector3 forward, Vector3[] trees, int[] hits, FishState fish, bool fished, bool traded, Vector3[] people = null, bool open = true, bool cookedOnce = false, bool hug = false, bool evening = true, string said = null, bool saying = false)
+        => Shown(Text(s, player, p, forward, trees, hits, fish, fished, traded, people, open, cookedOnce, hug, evening), said, saying, fish);
 
     // 钓鱼失败时这人字条位置说的那句（loop-10 绘本口吻、带这人的键名）：咬钩没按、鱼溜走（Bite→Idle）；张力过满、线断（Reel→Lost）。别的变化返回 null
     public static string Fail(FishState was, FishState now, int player = 0)

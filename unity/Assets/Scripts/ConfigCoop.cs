@@ -66,8 +66,8 @@ public static partial class Config
     public const int HintFont = 16, HintMax = 2;
     // loop-6 修补：字条上沿不高于 HintTop（顶部正中「砖 n　木 n」框 Bricks.OnGUI y 8–TopBarBottom 的下沿再留 4 px；loop-10 两边共用 TopBarBottom），头顶放不下就画到脚下 HintFeetGap px，
     // 从脚下换回头顶要比 HintTop 再低 HintBack px（loop-10 回差，免得在边界上来回跳）；兜底（走去码头尽头钓鱼 / 拿鱼去换砖、去烤）站定 HintStill 秒才画；
-    // 钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s）；收线时字条下沿一道 HintBar px 高的张力条，张力 > HintRed 变 Bobber 红（loop-10）
-    public const float TopBarBottom = 48f, HintTop = TopBarBottom + 4f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f, HintBack = 8f, HintBar = 4f, HintRed = 0.8f;
+    // 钓鱼失败那句在失败那人自己的字条位置留 HintFail 秒（同底部 Toast 的 1.5 s；loop-18 垒成小灯塔那句长，留 HintLong 秒）；收线时字条下沿一道 HintBar px 高的张力条，张力 > HintRed 变 Bobber 红（loop-10）
+    public const float TopBarBottom = 48f, HintTop = TopBarBottom + 4f, HintFeetGap = 4f, HintStill = 1f, HintFail = 1.5f, HintLong = 3f, HintBack = 8f, HintBar = 4f, HintRed = 0.8f;
 
     // 新开局（没有存档）库存里给 TestBricks 块砖。play 起为 0：一块都不送，砖只来自用鱼换。
     public const int TestBricks = 0;

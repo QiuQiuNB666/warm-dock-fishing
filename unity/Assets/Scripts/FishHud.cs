@@ -6,10 +6,10 @@ public static class FishHud
 {
     static GUIStyle cjk, bar;
 
-    public static void Draw(FishingLogic logic, int owner, Font font)
+    public static void Draw(FishingLogic logic, int owner, Font font, bool lantern = false)   // loop-18 lantern = 最近钓上那条是灯笼鱼（FishingStateMachine.LastLantern）：鱼名显示 lantern，同 CAUGHT 行尾
     {
         float x = owner == 0 ? 10f : Screen.width - 310f, bx = owner == 0 ? 10f : Screen.width - 210f;   // P1 左上，P2 右上
-        string head = $"Fish: {logic.CaughtCount}   {logic.State}  {logic.LastFish}", fish = $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}　熟鱼 {Stock.Current.Count(ItemType.CookedFish, owner)}";   // 原来的字不动，后面接「生鱼 n　熟鱼 n」（loop-9 加熟鱼）
+        string head = $"Fish: {logic.CaughtCount}   {logic.State}  {(lantern ? "lantern" : logic.LastFish)}", fish = $"生鱼 {Stock.Current.Count(ItemType.RawFish, owner)}　熟鱼 {Stock.Current.Count(ItemType.CookedFish, owner)}";   // 原来的字不动，后面接「生鱼 n　熟鱼 n」（loop-9 加熟鱼）
         cjk ??= new GUIStyle(GUI.skin.label) { font = font, fontSize = 13 };
         bar ??= new GUIStyle(cjk) { alignment = TextAnchor.MiddleLeft, padding = new RectOffset(6, 0, 0, 0), clipping = TextClipping.Overflow };   // loop-10：字在 18 px 高的条里上下居中（原来 22 px 高的字框从条顶往下排，字压在条下沿）
         float hw = GUI.skin.label.CalcSize(new GUIContent(head)).x;
