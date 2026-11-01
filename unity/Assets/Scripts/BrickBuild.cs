@@ -5,6 +5,7 @@ public partial class Bricks
 {
     public GameObject ghost;   // loop-20 放砖预览的样板（BuildScene 给：方块图元在编辑器里就删了碰撞体、材质 M_shadow、藏着），每人复制一份
     readonly GameObject[] ghosts = new GameObject[KeyMap.Players.Length];
+    readonly Material[] tints = new Material[KeyMap.Players.Length];   // loop-21 每人那份预览自己的材质（M_shadow 的复制），透明度各自呼吸
 
     public void Rebuild()
     {
@@ -30,12 +31,13 @@ public partial class Bricks
     void Update()
     {
         if (Pause.On || players == null) return;
+        var at = players.Positions();   // loop-21 每帧算一次，放砖和每人的预览共用（原来按 B 那支、每人的预览各算一遍，每遍一个 LINQ 新数组）
         foreach (var p in players.players)
         {
             if (p == null || !p.isActiveAndEnabled) continue;
             var k = KeyMap.Players[p.playerIndex];
             if (Hug.On || !InputManager2P.Pressed(k.Build)) continue;   // loop-14 抱着不读 B
-            int i = p.playerIndex; var c = Front(p.transform.position, p.transform.forward); var at = players.Positions(); int h = Height(Stock.Current, c);
+            int i = p.playerIndex; var c = Front(p.transform.position, p.transform.forward); int h = Height(Stock.Current, c);
             var why = BrickWhy.Of(Stock.Current, c, h, at, BrickPath.Open(Stock.Current, c, at), p.transform.position);   // loop-7：面前那格有人、放了会切断去码头的路都不放；同格往上垒一层（loop-11 原因码；loop-12 传自己的位置：只有自己压到砖位说「退后半步再放」）
             var r = why == BrickWhy.Code.Ok ? TryPlace(Stock.Current, c, h) : null;
             Debug.Log($"EVT build p{i} cell={c.x},{c.y} {(r != null ? "ok" : "no " + why)}");   // 实玩查面前是哪一格、放没放、为什么
@@ -44,7 +46,7 @@ public partial class Bricks
             Hints.Say(i, "放下一砖");   // loop-16 说在自己的字条位置（原来底部 Toast）；垒成小灯塔下一行那句盖过它
             if (Lighthouse(r)) { Hints.Say(i, Hints.Tower, Hints.Secs(Hints.Tower)); Debug.Log($"EVT lighthouse p{i} cell={c.x},{c.y}"); }   // loop-18 这句长，留 HintLong 秒读得完；loop-19「亮了」改「垒好了」：白天塔顶不亮，说亮了会让人去找（字和秒数在 Hints.Tower / Hints.Secs，测试锁得住）
         }
-        foreach (var p in players.players) if (p != null) Preview(p);   // loop-20 放砖之后再摆预览：放成那一帧预览就挪到下一层
+        foreach (var p in players.players) if (p != null) Preview(p, at);   // loop-20 放砖之后再摆预览：放成那一帧预览就挪到下一层
     }
 
     // loop-20 放砖预览：手里有砖、站定 GhostStill 秒（Hints 的站定计时）、没在钓鱼、没在抱、面前那格现在能放（同按 B 的 BrickWhy.Of，人和连通 open 都算）→
@@ -56,11 +58,20 @@ public partial class Bricks
         return Center(c, h) + Vector3.down * ((Config.BrickSize - Config.GhostThick) * 0.5f);
     }
 
-    void Preview(PlayerContext p)   // 每人一块，不满足就藏起来；连通用字条那边每 PathEvery 秒算好的（Hints.PathOk），站定 GhostStill 秒时早已按停下那格算过
+    // loop-21 预览透明度：GhostAlphaLo → GhostAlphaHi → GhostAlphaLo 来回，一个来回 GhostBreath 秒
+    public static float GhostAlpha(float t) => Mathf.Lerp(Config.GhostAlphaLo, Config.GhostAlphaHi, Mathf.PingPong(t * 2f / Config.GhostBreath, 1f));
+
+    void Preview(PlayerContext p, Vector3[] people)   // 每人一块，不满足就藏起来；连通用字条那边每 PathEvery 秒算好的（Hints.PathOk），站定 GhostStill 秒时早已按停下那格算过
     {
-        var g = ghosts[p.playerIndex] ??= Instantiate(ghost);
-        var at = p.isActiveAndEnabled ? Ghost(Stock.Current, p.transform.position, p.transform.forward, Hints.Still(p.playerIndex), p.fishing != null ? p.fishing.Logic.State : FishState.Idle, Hug.On, players.Positions(), Hints.PathOk(p.playerIndex)) : null;
-        g.SetActive(at != null);
-        if (at is Vector3 v) g.transform.position = v;
+        int i = p.playerIndex;
+        if (ghosts[i] == null)
+        {
+            ghosts[i] = Instantiate(ghost); tints[i] = ghosts[i].GetComponent<Renderer>().material;   // loop-21 .material 头一回取就给这人复制一份：只改这份的透明度，共享的 M_shadow 不动（网页端圆片影子还在用）
+        }
+        var at = p.isActiveAndEnabled ? Ghost(Stock.Current, p.transform.position, p.transform.forward, Hints.Still(i), p.fishing != null ? p.fishing.Logic.State : FishState.Idle, Hug.On, people, Hints.PathOk(i)) : null;
+        ghosts[i].SetActive(at != null);
+        if (at is not Vector3 v) return;
+        ghosts[i].transform.position = v;
+        var c = tints[i].color; c.a = GhostAlpha(Time.time); tints[i].color = c;   // loop-21 呼吸：动起来和静止的影子、坑分得开；只改透明度，不加新颜色
     }
 }

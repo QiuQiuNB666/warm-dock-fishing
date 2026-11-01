@@ -23,7 +23,8 @@ public partial class Hints
     public static bool Feet(bool was, float headY) => headY < Config.HintTop + (was ? Config.HintBack : 0f);
 
     // 字条走脚下吗（loop-14 修补）：Feet 的回差，或南北站位挨着——北边 HugRange 内有人（Hug.Below；南北 = Hug.NorthSouth，同 ♥）。抱着、抱完两人留在 HugGap 不动都算，靠南那人头顶的字条不压北边那人的帽子；左右并排、离得远都不算
-    public static bool Low(bool feet, Vector3 me, Vector3[] all) => feet || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
+    // loop-21 或面朝北（forward.z > GhostNorth）且放砖预览正显示（ghost：Bricks.Ghost 不为 null，同 Bricks.Preview 的判据）：预览在人北边一格，头顶字条的底边正压着它、下半截还被自己帽檐挡住；朝南、没预览照旧
+    public static bool Low(bool feet, Vector3 me, Vector3[] all, Vector3 forward = default, bool ghost = false) => feet || (ghost && forward.z > Config.GhostNorth) || Hug.Below(me, all.Where(o => Vector2.Distance(new Vector2(o.x, o.z), new Vector2(me.x, me.z)) <= Config.HugRange).ToArray());
 
     // loop-17 所有 Say 共用的这一处：刚说过一句（saying）就整句换掉提示，只有这人正咬钩时照常画「空格 提竿！」——另一人睡醒 / 天亮说的「天亮了」原会把它换掉 1.5 s（= BiteWindow），鱼必跑。
     // 收线时照换：张力条按 ten[] 另画，不受影响
@@ -95,7 +96,8 @@ public partial class Hints
             Vector2 size = style.CalcSize(new GUIContent(text)) + Vector2.right * Config.HintStripe;   // loop-16 左端加宽一道帽子色竖条，字照旧居中在其余部分
             float y = Screen.height - h.y - size.y, fy = Screen.height - cam.WorldToScreenPoint(p.transform.position).y + Config.HintFeetGap;   // 头顶：字的底边在头顶点上；脚下：脚下几像素。头顶会压到顶部「砖 n　木 n」就改画到脚下（不往下夹去压帽子），回差见 Feet
             feet[p.playerIndex] = Feet(feet[p.playerIndex], y);
-            var r = new Rect(h.x - size.x * 0.5f, Low(feet[p.playerIndex], p.transform.position, at) ? fy : y, size.x, size.y);   // loop-14 南北站位挨着（抱完不动也算，Low）：屏幕上靠下那人走脚下这一支，不压对方的帽子
+            bool ghost = Bricks.Ghost(Stock.Current, p.transform.position, p.transform.forward, still[p.playerIndex], f?.State ?? FishState.Idle, Hug.On, at, pathOk[p.playerIndex]) != null;   // loop-21 这人的放砖预览这会儿显示着吗（同 Bricks.Preview 的判据，纯函数）
+            var r = new Rect(h.x - size.x * 0.5f, Low(feet[p.playerIndex], p.transform.position, at, p.transform.forward, ghost) ? fy : y, size.x, size.y);   // loop-14 南北站位挨着（抱完不动也算，Low）：屏幕上靠下那人走脚下这一支，不压对方的帽子；loop-21 面朝北、放砖预览显示着也走这一支
             if (Cheer(text)) r = Dodge(new Rect(r.x, fy, size.x, size.y), new Rect(r.x, y, size.x, size.y), LeapBox(p, f), players.players.Where(o => o != null && o != p && o.isActiveAndEnabled).Select(o => ScreenBox(new[] { o.transform.position + Vector3.up * Config.HatMid }, new Vector3(Config.HatBrim, Config.HatHalf, Config.HatBrim))).ToArray(), Config.HintTop, Screen.width, Screen.height);   // loop-20 修补：正说钓上那句，不压跃出的鱼、不压别人的帽子（Dodge）
             rs[n] = r; who[n] = p.playerIndex; ten[n] = f != null && f.State == FishState.Reel ? f.Tension : -1f; ts[n++] = text;
         }

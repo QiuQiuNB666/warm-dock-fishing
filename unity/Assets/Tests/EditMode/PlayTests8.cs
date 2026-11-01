@@ -103,4 +103,22 @@ public class PlayTests8
             Clear(Dodge(FishR, hat), FishR, new[] { hat }, "帽子在 " + hat);
         }
     }
+
+    [Test] public void NoteLowWhenGhostNorth()   // loop-21 面朝北、预览正显示：字条走脚下（不压在预览上、不被自己帽檐挡半截）；朝北没预览 / 朝南照旧头顶
+    {
+        var s = PlayTests.Open + Vector3.back * 1.3f;   // 站在 Sand 南边、面朝北：面前正是 Sand（同 Me 反过来）
+        Assert.AreEqual(Sand, Bricks.Front(s, Vector3.forward));
+        bool north = Bricks.Ghost(new Stock { brick = 2 }, s, Vector3.forward, 1f, FishState.Idle, false, new[] { s }, true) != null;
+        Assert.IsTrue(north, "朝北面前能放：画预览");
+        Assert.IsTrue(Hints.Low(false, s, new[] { s }, Vector3.forward, north), "朝北 + 预览显示 → 走脚下");
+        Assert.IsFalse(Hints.Low(false, s, new[] { s }, Vector3.forward, false), "朝北没预览 → 照旧头顶");
+        Assert.IsFalse(Hints.Low(false, Me, new[] { Me }, Vector3.back, Ghost() != null), "朝南 + 预览显示 → 照旧头顶");
+    }
+
+    [Test] public void GhostBreathes()   // loop-21 透明度在 GhostAlphaLo–GhostAlphaHi 之间来回，一个来回 GhostBreath 秒
+    {
+        Assert.AreEqual(Config.GhostAlphaLo, Bricks.GhostAlpha(0f), 1e-4f);
+        Assert.AreEqual(Config.GhostAlphaHi, Bricks.GhostAlpha(Config.GhostBreath * 0.5f), 1e-4f);
+        Assert.AreEqual(Config.GhostAlphaLo, Bricks.GhostAlpha(Config.GhostBreath), 1e-4f);
+    }
 }

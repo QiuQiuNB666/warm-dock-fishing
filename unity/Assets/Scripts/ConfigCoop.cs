@@ -108,6 +108,9 @@ public static partial class Config
     // loop-20 放砖预览：手里有砖、站定 GhostStill 秒（同字条的站定计时）、没在钓也没在抱、面前那格现在能放时，在下一块砖的位置贴一片 GhostThick 厚的半透明方块（M_shadow）；
     // 边长 GhostSide 比砖小一圈（四边各 5 cm）：贴在砖顶时露出一圈砖色边，看得出是一片预览，不像砖顶自己发暗（l20p1 实玩：等大时只像顶面暗了）
     public const float GhostStill = 0.3f, GhostThick = 0.02f, GhostSide = BrickSize - 0.1f;
+    // loop-21 修补：预览透明度在 GhostAlphaLo–GhostAlphaHi 之间来回呼吸，一个来回 GhostBreath 秒（Bricks.GhostAlpha；每人一份 M_shadow 的复制，共享那份网页端圆片影子还在用、不动）：动起来才和静止的影子分得开（l20p2 不动的 35% 黑在沙地上像影子、像坑，叠在砖顶像空心箱子）；
+    // 面朝北（forward.z > GhostNorth）且预览正显示时字条走脚下（Hints.Low）：预览在人北边一格，头顶字条的底边正压着它、下半截还被自己帽檐挡住
+    public const float GhostAlphaLo = 0.15f, GhostAlphaHi = 0.45f, GhostBreath = 1.2f, GhostNorth = 0.5f;
     // loop-20 修补：钓上的鱼（Tackle.Leap / Hand）从浮漂沿弧高 FishLeapArc 跃 FishLeapTime 秒，落到根节点上方 FishHandUp、前方 FishHandFwd 的手上；鱼是竖着的胶囊，半长 FishHalf（= BuildCharacter 里 HookedFish 的 y 缩放）、半径 FishRadius。
     // 说钓上那句时 Hints 按同一条弧框出鱼还会占的屏幕范围，再框别人的帽子（帽檐半径 HatBrim，帽檐到帽顶 rig.py BRIM / CROWN 约 1.70–1.91 m = HatMid ± HatHalf），字条两样都不压（Hints.Dodge）
     public const float FishHandUp = 2.1f, FishHandFwd = 0.3f, FishLeapTime = 0.6f, FishLeapArc = 1.5f, FishHalf = 0.4f, FishRadius = 0.1f, HatBrim = 0.44f, HatMid = 1.81f, HatHalf = 0.11f;
