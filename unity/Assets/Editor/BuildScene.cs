@@ -27,7 +27,7 @@ public static class BuildScene
 
         // 海面 + 海底
         var water = new Material(Shader.Find("Warm/Water"));
-        water.SetColor("_Color", Config.Sea); water.SetFloat("_WaveAmp", Config.WaveAmp); water.SetFloat("_WaveLen", Config.WaveLen); water.SetFloat("_WaveSpeed", Config.WaveSpeed);
+        water.SetColor("_Color", Config.Sea); water.SetFloat("_WaveAmp", Config.WaveAmp); water.SetFloat("_WaveLen", Config.WaveLen); water.SetFloat("_WaveSpeed", Config.WaveSpeed); water.SetFloat("_Foam", 1f);   // loop-22 岸边泡沫线
         AssetDatabase.CreateAsset(water, Art + "Materials/M_water.mat");
         var sea = new GameObject("Sea", typeof(MeshFilter), typeof(MeshRenderer));
         sea.transform.SetParent(root, false);
@@ -97,6 +97,7 @@ public static class BuildScene
         game.AddComponent<Hug>();   // 两人凑近按 H 抱一下（loop-13）
 
         BuildNature.Build(root, water);
+        BuildShore.Build(root);   // loop-22 沙地贴图、岸边湿沙带、码头桩和礁石入水处的泡沫环
         System.IO.Directory.CreateDirectory("Assets/Scenes");
         EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(), ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };

@@ -96,7 +96,7 @@ public static class ProjectSetup
 }
 
 // FBX：轴向烘焙（decisions.md：Blender 侧不 bake_space_transform，Unity 侧必须开）、1 单位=1m；
-// 循环动作（idle/walk/wait/reel）开 loop，一次性动作不开；根节点 XZ 位移烘进姿势；贴图 WebGL 覆盖 1024 + DXT。
+// 循环动作（idle/walk/wait/reel）开 loop，一次性动作不开；根节点 XZ 位移烘进姿势；贴图 WebGL 覆盖同桌面上限（≤1024）+ DXT。
 public class WarmImport : AssetPostprocessor
 {
     void OnPreprocessModel()
@@ -132,6 +132,6 @@ public class WarmImport : AssetPostprocessor
         var ti = (TextureImporter)assetImporter;
         ti.maxTextureSize = Mathf.Min(ti.maxTextureSize, 1024);
         ti.SetPlatformTextureSettings(new TextureImporterPlatformSettings
-            { name = "WebGL", overridden = true, maxTextureSize = 1024, format = TextureImporterFormat.DXT5 });
+            { name = "WebGL", overridden = true, maxTextureSize = ti.maxTextureSize, format = TextureImporterFormat.DXT5 });   // loop-22 网页跟桌面上限走（T_sand 512）
     }
 }

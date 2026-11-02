@@ -89,6 +89,7 @@ unity/Assets/Tests/EditMode/: Tests.asmdef BuildSceneTests.cs SystemsTests.cs
   loop-17 unity/Assets/Tests/EditMode/PlayTests7.cs（Say 不盖咬钩提示、天亮跳过钓鱼的人、♥ 以北边那人为基准、灯笼鱼几率 / 灯塔计数 / 记账的纯逻辑测试，PlayTests 满了另开）
   loop-18 unity/Assets/Tests/EditMode/CoopTests2.cs（CoopTests 正好 150 行：play-1~3 钓上记账、门口换砖、同格垒砖三条整条搬来，断言一字不改）
   loop-20 unity/Assets/Tests/EditMode/PlayTests8.cs（放砖预览什么时候画、画在哪，钓上那句字条不压跃出的鱼和别人的帽子（Hints.Dodge）的纯逻辑测试，PlayTests5 / PlayTests7 满了另开）
+  loop-22 unity/Assets/Editor/BuildShore.cs（画面①：沙地程序贴图、岸边湿沙带、码头桩/礁石入水处的泡沫环薄片）  unity/Assets/Tests/EditMode/VisualTests.cs（画面断言：沙地贴图、薄片无碰撞、URP 阴影与 SSAO）  unity/Assets/Art/Tex/T_sand.png（BuildShore 生成，512² 可平铺）
 ```
 Tests.asmdef 只在 Editor 平台编译，引用 Game + 测试框架（没有 asmdef 的话，测试代码会编进游戏本体，直接编译失败）。
 

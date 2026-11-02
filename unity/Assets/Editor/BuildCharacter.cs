@@ -42,7 +42,8 @@ public static class BuildCharacter
             if (mount != null && CharacterRig.Facing(player.transform, Bone("hips"), mount) < 0f) body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // 模型背对 +Z 就掉头
             if (wait != null) wait.SampleAnimation(body, 0f);
         }
-        if (index == 1) HatBand(Bone("hat"));
+        if (index == 1) HatDisc(Bone("hat"), "HatBand", 0.324f, 0.045f, 0.018f, BuildNature.Mat("M_hatband", Config.HatBandP2), UnityEngine.Rendering.ShadowCastingMode.On);
+        HatDisc(Bone("hat"), "HatShadow", 0.6f, 0.03f, 0.02f, wood, UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly);   // 只投影的实心帽芯（l22p2）：帽檐内沿开口、帽带帽冠拼不严，阴影法线偏移一推，锐影下帽影中间漏两道光
 
         // 鱼竿：三节，挂到右手 rod_mount（没有骨骼就挂角色身上），朝前上方 40°
         var rod = new GameObject("Rod").transform;
@@ -59,7 +60,7 @@ public static class BuildCharacter
             joints[i].localPosition = i == 0 ? Vector3.zero : Vector3.up * Config.RodSegment;
             var seg = BuildScene.Prim(PrimitiveType.Cylinder, "RodSegment", joints[i], Vector3.zero, new Vector3(0.04f - i * 0.01f, Config.RodSegment * 0.5f, 0.04f - i * 0.01f), woodDark);
             seg.transform.localPosition = Vector3.up * Config.RodSegment * 0.5f;
-            Object.DestroyImmediate(seg.GetComponent<Collider>());
+            Object.DestroyImmediate(seg.GetComponent<Collider>()); seg.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;   // 4 cm 细竿经不起阴影法线偏移，锐影断成一串点（l22p2）：不投影
             parent = joints[i];
         }
         var tip = new GameObject("RodTip").transform;
@@ -91,14 +92,15 @@ public static class BuildCharacter
         return fishing;
     }
 
-    // P2 帽带：hat 骨骼下的细圆柱，盖住人偶原来那圈帽带（blender/rig.py：半径 0.155、高 1.75–1.78 m，hat 骨骼起点 1.72 m）
-    static void HatBand(Transform hat)
+    // hat 骨骼下的扁圆柱（直径 d、中心在骨骼起点往上 up、半高 h）：P2 帽带盖住人偶原来那圈（blender/rig.py：帽带半径 0.155、高 1.75–1.78 m，帽檐内沿 1.735–1.757 m，hat 骨骼起点 1.72 m）
+    static void HatDisc(Transform hat, string name, float d, float up, float h, Material m, UnityEngine.Rendering.ShadowCastingMode cast)
     {
         if (hat == null) return;
         Vector3 axis = hat.up.y > 0.7f ? hat.up : Vector3.up;   // 骨骼 Y 轴顺着帽子向上；不确定时按世界向上
-        var band = BuildScene.Prim(PrimitiveType.Cylinder, "HatBand", null, hat.position + axis * 0.045f, new Vector3(0.324f, 0.018f, 0.324f), BuildNature.Mat("M_hatband", Config.HatBandP2));
+        var band = BuildScene.Prim(PrimitiveType.Cylinder, name, null, hat.position + axis * up, new Vector3(d, h, d), m);
         band.transform.rotation = Quaternion.FromToRotation(Vector3.up, axis);
         Object.DestroyImmediate(band.GetComponent<Collider>());
+        band.GetComponent<Renderer>().shadowCastingMode = cast;
         band.transform.SetParent(hat, true);
     }
 

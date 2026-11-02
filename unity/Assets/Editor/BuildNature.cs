@@ -99,10 +99,14 @@ public static class BuildNature
     public static Mesh Grid(float w, float d, int nx, int nz)
     {
         var v = new Vector3[(nx + 1) * (nz + 1)];
+        var uv = new Vector2[v.Length];   // loop-22 Water.shader 读 TEXCOORD0（泡沫环靠它），水面、河、湿沙网格都带上
         var tri = new int[nx * nz * 6];
         for (int z = 0, i = 0; z <= nz; z++)
             for (int x = 0; x <= nx; x++, i++)
+            {
                 v[i] = new Vector3((x / (float)nx - 0.5f) * w, 0f, (z / (float)nz - 0.5f) * d);
+                uv[i] = new Vector2(x / (float)nx, z / (float)nz);
+            }
         for (int z = 0, t = 0; z < nz; z++)
             for (int x = 0; x < nx; x++)
             {
@@ -110,7 +114,7 @@ public static class BuildNature
                 tri[t++] = a; tri[t++] = c; tri[t++] = a + 1;
                 tri[t++] = a + 1; tri[t++] = c; tri[t++] = c + 1;
             }
-        var m = new Mesh { name = "Grid", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32, vertices = v, triangles = tri };
+        var m = new Mesh { name = "Grid", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32, vertices = v, uv = uv, triangles = tri };
         m.RecalculateNormals();
         m.RecalculateBounds();
         return m;

@@ -72,6 +72,10 @@ public static partial class Config
     public static readonly Color River = new Color(0.40f, 0.78f, 0.90f, 0.7f);
     public static readonly Color Fish = new Color(0.98f, 0.72f, 0.30f);
     public static readonly Color Bobber = new Color(0.92f, 0.22f, 0.20f);
+    // loop-22 画面①：沙地细节贴图（BuildShore，固定种子 SandSeed）SandTile 米一块、海底 SeabedTile 米一块；岸边湿沙带宽 WetWidth，水边乘 WetSand（深约 18%、略偏冷）往内陆渐隐；泡沫环从桩边往外 FoamRing 米
+    public const int SandSeed = 22;
+    public const float SandTile = 4f, SeabedTile = 6f, WetWidth = 2.5f, FoamRing = 0.35f, SandFoamW = 0.8f;   // SandFoamW：沙上泡沫薄片从台沿往内陆的宽度（泡沫内沿涨落约 0.25–0.65 m，Water.shader SandFoam）
+    public static readonly Color WetSand = new Color(0.80f, 0.82f, 0.86f);
 
     // 钓鱼
     public const float WaitMin = 2f, WaitMax = 6f, BiteWindow = 1.5f, CastTime = 0.6f, ResultTime = 1.2f;
